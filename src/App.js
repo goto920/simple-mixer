@@ -2,7 +2,7 @@ import React, { Component}  from 'react';
 import './App.css';
 import packageJSON from '../package.json';
 
-const Version = packageJSON.subversion;
+const version = packageJSON.subversion;
 
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
@@ -67,7 +67,7 @@ class App extends Component {
      <center>Channel Gain</center>
      {sliders}
      <hr />
-     version: {version}
+     Version: {version}
      </div>
     );
   }
