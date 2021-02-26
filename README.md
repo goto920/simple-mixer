@@ -9,7 +9,7 @@ bass.wav, drums.wav, vocal.wav, etc.
 
 ## Demo
 [https://goto920.github.io/demos/simple-mixer/]
-https://goto920.github.io/demos/simple-mixer/
+(https://goto920.github.io/demos/simple-mixer/)
 
 ## Plan
 ### Export mix to local file (as wav)
