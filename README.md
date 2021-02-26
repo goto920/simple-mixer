@@ -6,14 +6,19 @@ Written with React and Web Audio API.
 
 ## input audio files (wav, mp3, or whatever the browser supports)
 
-(example)
+Select multiple flles (5stem example)
+
 bass.wav
+
 drums.wav
+
 other.wav
+
 piano.wav
+
 vocals.wav
 
-in a folder (directory).
+stored in a folder (directory).
 
 ## Demo
 https://goto920.github.io/demos/simple-mixer/
