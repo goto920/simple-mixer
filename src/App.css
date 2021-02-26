@@ -1,38 +1,67 @@
 .App {
+  text-align: left;
+  max-width: 375px;
+  margin: 0 auto;
+  padding: 30px;
+  cursor: pointer;
+}
+
+.selectFile input {
+  background: #C94D46;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.slider input {
+    width: 80%;
+/*  width: 60%; */
+  margin: auto;
+  cursor: pointer;
+}
+.shortSlider input {
+  width: 60%;
+  margin: auto;
+  cursor: pointer;
+}
+
+.addClicks button {
+  background: #C94D46;
+  padding: 8px;
+  border: 1px solid #832420;
+  border-radius: 2px;
+  width: 80px;
+/*  width: 60px; */
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.tinyButton button {
+  cursor: pointer;
+  height: 25px;
+  width: 25px;
+  margin: 0 auto;
   text-align: center;
+  line-height: 10px;
+  border-radius: 5px;
+  font-size: 20px;
+  background: #00ffff;
+  padding: 5px 5px;
+  color: #000000;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.small-button button {
+  background: #0000ff;
+  padding: 8px;
+  border: 1px solid #832420;
+  border-radius: 2px;
+  width: 60px;
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.selector select {
+  cursor: pointer;
 }

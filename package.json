@@ -2,6 +2,8 @@
   "name": "simple-mixer",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
+  "subversion": "20210226-00",
   "dependencies": {
     "@testing-library/jest-dom": "^5.11.9",
     "@testing-library/react": "^11.2.5",
