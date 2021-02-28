@@ -1,6 +1,13 @@
-import React, { Component}  from 'react';
+import React, { Component }  from 'react';
 import './App.css';
 import packageJSON from '../package.json';
+import { IconButton } from '@material-ui/core';
+import ClearIcon from '@material-ui/icons/Clear';
+import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
+import PauseCircleOutlineOutlinedIcon
+        from '@material-ui/icons/PauseCircleOutlineOutlined';
+import StopOutlinedIcon from '@material-ui/icons/StopOutlined';
+import LoopOutlinedIcon from '@material-ui/icons/LoopOutlined';
 
 const version = packageJSON.subversion;
 
@@ -13,12 +20,14 @@ class App extends Component {
     this.inputAudio = [];
  
     this.state = {
-     playingAt: 0,
-     timeA: 0,
-     timeB: 0, 
-     startButtonStr: 'load files first!',
-     gains: [],
-     masterGain: 0.7*100,
+      timeA: 0,
+      playingAt: 0,
+      timeB: 0, 
+      loop: false,
+      loopDelay: 2,
+      startButtonStr: 'load files first!',
+      gains: [],
+      masterGain: 0.7*100,
     };
 
     this.loadFiles = this.loadFiles.bind(this);
@@ -27,6 +36,33 @@ class App extends Component {
   }   
 
   render(){
+
+    const PlayButton = () => {
+       let icon;
+       switch(this.state.startButtonStr){
+         case 'load files first!':
+           icon = 
+             <IconButton disabled>
+             <ClearIcon color='disabled' fontSize='large' />
+             </IconButton>;
+         break;
+         case 'Play': case 'Resume':
+           icon = <IconButton  
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PlayCircleOutlineIcon color='primary' fontSize='large' />
+             </IconButton>;
+         break;
+         case 'Pause': 
+           icon = <IconButton  
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PauseCircleOutlineOutlinedIcon color='primary' fontSize='large' />
+             </IconButton>;
+         break;
+         default:
+           icon = 'undefined';
+       }
+       return (<span>{icon}</span>);
+    };
 
     const sliders = this.state.gains.map((value, index) => {
       return (
@@ -43,17 +79,24 @@ class App extends Component {
 
     return (
      <div className="App">
-     KG's Simple Mixer
+     KG's Simple Mixer (Select stem files and play)<hr />
      <span className="selectFile">
      <input type="file" name="loadFiles" multiple="multiple"
         accept="audio/*" onChange={this.loadFiles} /><br />
      </span>
      <hr />
-     <button name='startPause' onClick={this.handlePlay}> 
-     {this.state.startButtonStr}
-     </button> &nbsp;&nbsp;
-     <button name='reWind' onClick={this.handlePlay}>
-        Stop/Rewind</button>
+     Player Controls:&nbsp;&nbsp; 
+     <PlayButton />
+     <IconButton  
+       onClick={() => this.handlePlay({target: {name: 'stop'}})} >
+       <StopOutlinedIcon fontSize='large' 
+       color={this.isPlaying ? 'primary' : 'disabled'} />
+     </IconButton>
+     <IconButton  
+       onClick={() => {this.setState({loop: !this.state.loop});}} >
+       <LoopOutlinedIcon fontSize='large' 
+       color={this.state.loop ? 'secondary' : 'primary'} />
+     </IconButton>
      <hr />
      <div className='slider' key='master'>
        <center>
@@ -80,6 +123,7 @@ class App extends Component {
 
     if (this.audioCtx !== null) this.audioCtx.close();
     this.audioCtx = new AudioContext();
+    this.isPlaying = false;
 
     this.inputAudio = []; // clear
     const gains = [];
@@ -94,7 +138,6 @@ class App extends Component {
               data: audioBuffer,
               source: null,
               gainNode: null,
-              masterGainNode: null,
             });
 
            gains.push(100);
@@ -103,7 +146,8 @@ class App extends Component {
                startButtonStr: 'Play',
                timeA: 0,
                playingAt: 0,
-               timeB: this.inputAudio[0].data.duration,
+               //timeB: this.inputAudio[0].data.duration,
+               timeB: 10,
                gains: gains,
                masterGain: 0.7*100,
              });
@@ -122,8 +166,11 @@ class App extends Component {
 
   } // end loadFiles()
 
-  playAB(timeA, timeB){
+  playAB(delay, timeA, timeB){
+    console.log('playAB, isPlaying', delay, timeA, timeB, this.isPlaying);
+
     if (this.isPlaying) return;
+
     if (this.audioCtx.state === 'suspended' ) this.audioCtx.resume();
 
     for (let i=0; i < this.inputAudio.length; i++){
@@ -148,26 +195,39 @@ class App extends Component {
        gains.push(100*this.inputAudio[i].gainNode.gain.value);
 
     this.setState({gains: gains});
+
     for (let i=0; i < this.inputAudio.length; i++)
-       this.inputAudio[i].source.start();
+      this.inputAudio[i].source.start(
+        this.audioCtx.currentTime +delay, timeA, timeB - timeA);
+
+    this.inputAudio[0].source.onended = function () {
+      console.log('source.onended');
+      this.isPlaying = false;
+      if (this.state.loop) this.playAB(2, timeA, timeB);
+    }.bind(this);
 
     this.isPlaying = true;
   }
 
   handlePlay(event){
 
+    console.log('Name', event.target.name);
+
     if (event.target.name === 'startPause') {
 
       switch(this.state.startButtonStr){
         case 'Pause':
+          console.log('Pause');
           this.audioCtx.suspend();
           this.isPlayng = false;
           this.setState ({startButtonStr: 'Resume'});
         break;
 
         case 'Play': case 'Resume':
+          if (this.inputAudio.length === 0) break;
           if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-          this.playAB (0, this.inputAudio[0].data.duration);
+          this.playAB (0, this.state.timeA, 
+            this.state.timeB - this.state.timeA);
           this.setState ({startButtonStr: 'Pause'})
         break;
 
@@ -177,10 +237,13 @@ class App extends Component {
       return;
     }
 
-    if (event.target.name === 'reWind') {
-      for (let i=0; i < this.inputAudio.length; i++)
-        this.inputAudio[i].source.stop();
+    if (event.target.name === 'stop') {
+      if (this.inputAudio.length === 0) return;
 
+      for (let i=0; i < this.inputAudio.length; i++)
+        if (this.inputAudio[i].source) this.inputAudio[i].source.stop();
+
+      this.isPlaying = false;
       this.setState ({startButtonStr: 'Play'})
       return;
     }    
