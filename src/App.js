@@ -24,6 +24,7 @@ class App extends Component {
     this.startedAt = 0;
  
     this.state = {
+      isPlaying: false,
       timeA: 0,
       playingAt: 0,
       timeB: 0, 
@@ -159,7 +160,7 @@ class App extends Component {
      <IconButton  
        onClick={() => this.handlePlay({target: {name: 'export'}})} >
        <GetAppIcon 
-       color={this.isPlaying ? 'disabled' : 'primary'} />
+       color={this.state.isPlaying ? 'disabled' : 'primary'} />
      </IconButton>
      </Tooltip>
      <hr />
@@ -188,7 +189,7 @@ class App extends Component {
 
     if (this.audioCtx !== null) this.audioCtx.close();
     this.audioCtx = new AudioContext();
-    this.isPlaying = false;
+    this.setState({isPlaying: false});
 
     this.inputAudio = []; // clear
     const gains = [];
@@ -234,10 +235,10 @@ class App extends Component {
     console.log('playAB', 
     delay, timeA, timeB, 'export: ', exportFile);
 
-    if (this.isPlaying) return;
+    if (this.state.isPlaying) return;
 
     if (this.audioCtx.state === 'suspended' ) this.audioCtx.resume();
-    this.isPlaying = true;
+    this.setState({isPlaying : true});
 
     const saver 
       = new SaverNode(this.audioCtx,this.inputAudio[0].data.sampleRate);
@@ -284,8 +285,10 @@ class App extends Component {
         this.inputAudio[i].gainNode.disconnect(saverNode);
       saverNode.disconnect(masterGainNode);
       if (exportFile) saver.exportFile('mix.wav');
-      this.setState({playingAt: this.state.timeA}); 
-      this.isPlaying = false; 
+      this.setState({
+        playingAt: this.state.timeA,
+        isPlaying: false
+      }); 
 
       if (this.state.loop) this.playAB(2, timeA, timeB);
     }.bind(this);
@@ -308,16 +311,20 @@ class App extends Component {
         case 'Pause':
           console.log('Pause');
           if(this.audioCtx) this.audioCtx.suspend();
-          this.setState ({startButtonStr: 'Resume'});
-          this.isPlaying = false;
+          this.setState ({
+            startButtonStr: 'Resume',
+            isPlaying: false 
+          });
         break;
 
         case 'Resume': 
           console.log('Resume');
           this.startedAt = this.audioCtx.currentTime;
           if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-          this.isPlaying = true;
-          this.setState ({startButtonStr: 'Pause'})
+          this.setState ({
+            startButtonStr: 'Pause', 
+            isPlaying: true
+          });
         break;
 
         case 'Play':
