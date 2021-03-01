@@ -42,7 +42,7 @@ class App extends Component {
   }   
 
   componentWillUnmount () { // before closing app
-     if (this.audioCtx !== null) this.audioCtx.close();
+    if (this.audioCtx !== null) this.audioCtx.close();
   }
 
 

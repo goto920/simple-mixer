@@ -34,13 +34,13 @@ class SaverNode {
     for (let channel = 0; channel < nc; channel++){
       const inPCM = inputBuffer.getChannelData(channel);
       const outPCM = outputBuffer.getChannelData(channel);
+
       outPCM.set(inPCM);
 
       if (this.record){
-        for (let i = 0; i < outPCM.length; i++){
+        for(let i=0; i < outPCM.length; i++)
           this.outputSamples[channel].push(outPCM[i]);
-        } 
-      } // end this.record
+      }
 
     }
     // console.log('outSamples: ', this.outputSamples[0].length);
@@ -67,13 +67,15 @@ class SaverNode {
     const left = outputBuffer.getChannelData(0);
     const right = outputBuffer.getChannelData(1);
 
+/*
     for (let i = 0; i < left.length; i++ ){
       left[i]  = this.outputSamples[0][i]; 
       right[i] = this.outputSamples[1][i]; 
     }
+*/
 
-    // left.set(this.outputSamples[0]);
-    // right.set(this.outputSamples[1]);
+    left.set(this.outputSamples[0]);
+    right.set(this.outputSamples[1]);
 
     const blob = new Blob([toWav(outputBuffer)], {type: 'audio/vnd.wav'});
     saveAs(blob, filename);
