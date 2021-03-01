@@ -1,8 +1,7 @@
 import React, { Component }  from 'react';
 import './App.css';
 import packageJSON from '../package.json';
-import { IconButton } from '@material-ui/core';
-import ClearIcon from '@material-ui/icons/Clear';
+import { IconButton, Tooltip } from '@material-ui/core';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import PauseCircleOutlineOutlinedIcon
         from '@material-ui/icons/PauseCircleOutlineOutlined';
@@ -54,15 +53,16 @@ class App extends Component {
        switch(this.state.startButtonStr){
          case 'load files first!':
            icon = 
-             <IconButton disabled>
-             <ClearIcon color='disabled' />
-             </IconButton>;
+             <Tooltip title='Load file first'>
+             <span><IconButton>
+             <PlayCircleOutlineIcon color='disabled' />
+             </IconButton></span></Tooltip>;
          break;
          case 'Play': 
-           icon = <IconButton  
+           icon = <Tooltip title='play A to B'><IconButton  
              onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
              <PlayCircleOutlineIcon color='primary' />
-             </IconButton>;
+             </IconButton></Tooltip>;
          break;
          case 'Resume':
            icon = <IconButton  
@@ -120,36 +120,48 @@ class App extends Component {
      <hr />
 
      <PlayButton />
+     <Tooltip title='stop and rewined to A'>
      <IconButton  
        onClick={() => this.handlePlay({target: {name: 'stop'}})} >
        <StopOutlinedIcon 
      color={this.inputAudio.length ? 'primary' : 'disabled'} />
      </IconButton>
+     </Tooltip>
+     <Tooltip title='toggle loop AB'>
      <IconButton  
        onClick={() => {this.setState({loop: !this.state.loop});}} >
        <LoopOutlinedIcon 
        color={this.state.loop ? 'secondary' : 'primary'} />
      </IconButton>
+     </Tooltip>
      <span className='tiny-button'>
+     <Tooltip title='play and click or stop, move slider, and click'>
      <button name='setA' 
         onClick={()=> this.setState({timeA: this.state.playingAt})}>
         set A
      </button>
+     </Tooltip>
       &nbsp;&nbsp;&nbsp;
+     <Tooltip title='play and click or stop, move slider, and click'>
      <button name='setB' 
         onClick={()=> this.setState({timeB: this.state.playingAt})}>
         set B
      </button>
+     </Tooltip>
       &nbsp;&nbsp;&nbsp;
+     <Tooltip title='reset AB'>
      <button name='reset' 
         onClick={()=> this.setState({timeA: 0, timeB: this.inputAudio[0].data.duration})}>reset
      </button>
+     </Tooltip>
      </span>
+     <Tooltip title='Export after playback' aria-label='export'>
      <IconButton  
        onClick={() => this.handlePlay({target: {name: 'export'}})} >
        <GetAppIcon 
        color={this.isPlaying ? 'disabled' : 'primary'} />
      </IconButton>
+     </Tooltip>
      <hr />
      <div className='slider' key='master'>
        <center>
