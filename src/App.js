@@ -8,6 +8,8 @@ import PauseCircleOutlineOutlinedIcon
         from '@material-ui/icons/PauseCircleOutlineOutlined';
 import StopOutlinedIcon from '@material-ui/icons/StopOutlined';
 import LoopOutlinedIcon from '@material-ui/icons/LoopOutlined';
+import GetAppIcon from '@material-ui/icons/GetApp';
+import SaverNode from './SaverNode';
 
 const version = packageJSON.subversion;
 
@@ -18,6 +20,9 @@ class App extends Component {
     super();
     this.audioCtx = new AudioContext();
     this.inputAudio = [];
+    this.masterGainNode = null;
+    this.sliderTimer = null;
+    this.startedAt = 0;
  
     this.state = {
       timeA: 0,
@@ -27,13 +32,20 @@ class App extends Component {
       loopDelay: 2,
       startButtonStr: 'load files first!',
       gains: [],
-      masterGain: 0.7*100,
+      masterGain: 75,
     };
 
     this.loadFiles = this.loadFiles.bind(this);
     this.handlePlay = this.handlePlay.bind(this);
     this.handleGainSlider = this.handleGainSlider.bind(this);
+    this.handleTimeSlider = this.handleTimeSlider.bind(this);
+    this.playAB = this.playAB.bind(this);
   }   
+
+  componentWillUnmount () { // before closing app
+     if (this.audioCtx !== null) this.audioCtx.close();
+  }
+
 
   render(){
 
@@ -43,19 +55,25 @@ class App extends Component {
          case 'load files first!':
            icon = 
              <IconButton disabled>
-             <ClearIcon color='disabled' fontSize='large' />
+             <ClearIcon color='disabled' />
              </IconButton>;
          break;
-         case 'Play': case 'Resume':
+         case 'Play': 
            icon = <IconButton  
              onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PlayCircleOutlineIcon color='primary' fontSize='large' />
+             <PlayCircleOutlineIcon color='primary' />
+             </IconButton>;
+         break;
+         case 'Resume':
+           icon = <IconButton  
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PlayCircleOutlineIcon style={{color: '#00aa00' }} />
              </IconButton>;
          break;
          case 'Pause': 
            icon = <IconButton  
              onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PauseCircleOutlineOutlinedIcon color='primary' fontSize='large' />
+             <PauseCircleOutlineOutlinedIcon color='primary' />
              </IconButton>;
          break;
          default:
@@ -85,25 +103,60 @@ class App extends Component {
         accept="audio/*" onChange={this.loadFiles} /><br />
      </span>
      <hr />
-     Player Controls:&nbsp;&nbsp; 
+     PlayingAt: {this.state.playingAt.toFixed(2)}&nbsp;&nbsp; 
+     Duration: {this.inputAudio[0] ? 
+                this.inputAudio[0].data.duration.toFixed(2) : 0.00}
+     <center>
+     <div className='slider'>
+     <input type='range' name='timeSlider'
+       min='0' max= {this.inputAudio[0] ? 
+              this.inputAudio[0].data.duration : 0}
+       value={this.state.playingAt}
+       onChange={this.handleTimeSlider}
+     />
+     </div>
+     A: {this.state.timeA.toFixed(2)} -- B: {this.state.timeB.toFixed(2)}
+     </center>
+     <hr />
+
      <PlayButton />
      <IconButton  
        onClick={() => this.handlePlay({target: {name: 'stop'}})} >
-       <StopOutlinedIcon fontSize='large' 
-       color={this.isPlaying ? 'primary' : 'disabled'} />
+       <StopOutlinedIcon 
+     color={this.inputAudio.length ? 'primary' : 'disabled'} />
      </IconButton>
      <IconButton  
        onClick={() => {this.setState({loop: !this.state.loop});}} >
-       <LoopOutlinedIcon fontSize='large' 
+       <LoopOutlinedIcon 
        color={this.state.loop ? 'secondary' : 'primary'} />
+     </IconButton>
+     <span className='tiny-button'>
+     <button name='setA' 
+        onClick={()=> this.setState({timeA: this.state.playingAt})}>
+        set A
+     </button>
+      &nbsp;&nbsp;&nbsp;
+     <button name='setB' 
+        onClick={()=> this.setState({timeB: this.state.playingAt})}>
+        set B
+     </button>
+      &nbsp;&nbsp;&nbsp;
+     <button name='reset' 
+        onClick={()=> this.setState({timeA: 0, timeB: this.inputAudio[0].data.duration})}>reset
+     </button>
+     </span>
+     <IconButton  
+       onClick={() => this.handlePlay({target: {name: 'export'}})} >
+       <GetAppIcon 
+       color={this.isPlaying ? 'disabled' : 'primary'} />
      </IconButton>
      <hr />
      <div className='slider' key='master'>
        <center>
        Master Gain ({this.state.masterGain}) <br />
        0 <input type='range' id='master' name='gainSlider' 
-          min='0' max='100' value={this.state.masterGain} 
-           onChange={this.handleGainSlider} /> 100
+          min='0' max='150' value={this.state.masterGain} 
+           onChange={this.handleGainSlider} /> 150
        </center>
      </div>
      <hr />
@@ -146,10 +199,8 @@ class App extends Component {
                startButtonStr: 'Play',
                timeA: 0,
                playingAt: 0,
-               //timeB: this.inputAudio[0].data.duration,
-               timeB: 10,
+               timeB: this.inputAudio[0].data.duration, // test timeB: 10,
                gains: gains,
-               masterGain: 0.7*100,
              });
            } // end if
 
@@ -166,72 +217,106 @@ class App extends Component {
 
   } // end loadFiles()
 
-  playAB(delay, timeA, timeB){
-    console.log('playAB, isPlaying', delay, timeA, timeB, this.isPlaying);
+  playAB(delay, timeA, timeB, exportFile=false){
+
+    console.log('playAB', 
+    delay, timeA, timeB, 'export: ', exportFile);
 
     if (this.isPlaying) return;
 
     if (this.audioCtx.state === 'suspended' ) this.audioCtx.resume();
+    this.isPlaying = true;
+
+    const saver 
+      = new SaverNode(this.audioCtx,this.inputAudio[0].data.sampleRate);
+    const saverNode = this.audioCtx.createScriptProcessor(4096,2,2);
+
+    const masterGainNode = this.audioCtx.createGain();
+      masterGainNode.gain.value = this.state.masterGain/100.0;
+    this.masterGainNode = masterGainNode;
 
     for (let i=0; i < this.inputAudio.length; i++){
-
       const source = this.audioCtx.createBufferSource();
-      const masterGainNode = this.audioCtx.createGain();
-        masterGainNode.gain.value = this.state.masterGain/100.0;
-
       source.buffer = this.inputAudio[i].data;
         this.inputAudio[i].source = source;
       const gainNode = this.audioCtx.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
         this.inputAudio[i].gainNode = gainNode;
-        this.inputAudio[i].masterGainNode = masterGainNode;
       source.connect(gainNode);
-      gainNode.connect(masterGainNode);
-      masterGainNode.connect(this.audioCtx.destination);
+      gainNode.connect(saverNode);
     }
 
-    const gains = [];
-    for (let i=0; i < this.inputAudio.length; i++)
-       gains.push(100*this.inputAudio[i].gainNode.gain.value);
+    saverNode.connect(masterGainNode);
 
-    this.setState({gains: gains});
+    masterGainNode.connect(this.audioCtx.destination);
 
-    for (let i=0; i < this.inputAudio.length; i++)
-      this.inputAudio[i].source.start(
-        this.audioCtx.currentTime +delay, timeA, timeB - timeA);
+    if (exportFile) saver.setRecord(true);
+
+    this.startedAt = this.audioCtx.currentTime + delay;
+    for (let i=0; i < this.inputAudio.length; i++){
+      this.inputAudio[i].source.start(this.startedAt, timeA, timeB - timeA);
+    }
+    this.setState({playingAt: timeA});
+
+    let count = 0;
+    saverNode.onaudioprocess = function(e){
+      saver.process(e.inputBuffer,e.outputBuffer);
+      if (count++ % 10 === 0)
+        this.setState({playingAt: timeA + saver.getProcessedTime()});
+    }.bind(this);
 
     this.inputAudio[0].source.onended = function () {
       console.log('source.onended');
-      this.isPlaying = false;
+
+      for (let i=0; i < this.inputAudio.length; i++)
+        this.inputAudio[i].gainNode.disconnect(saverNode);
+      saverNode.disconnect(masterGainNode);
+      if (exportFile) saver.exportFile('mix.wav');
+      this.setState({playingAt: this.state.timeA}); 
+      this.isPlaying = false; 
+
       if (this.state.loop) this.playAB(2, timeA, timeB);
     }.bind(this);
 
-    this.isPlaying = true;
+  } // END playAB
+
+  handleTimeSlider(event){
+    if(event.target.name !== 'timeSlider') return;
+    this.setState({playingAt: parseFloat(event.target.value)});
   }
 
   handlePlay(event){
 
-    console.log('Name', event.target.name);
+    console.log('Name', event.target.name, this.state.startButtonStr);
 
     if (event.target.name === 'startPause') {
 
       switch(this.state.startButtonStr){
+
         case 'Pause':
           console.log('Pause');
-          this.audioCtx.suspend();
-          this.isPlayng = false;
+          if(this.audioCtx) this.audioCtx.suspend();
           this.setState ({startButtonStr: 'Resume'});
+          this.isPlaying = false;
         break;
 
-        case 'Play': case 'Resume':
-          if (this.inputAudio.length === 0) break;
+        case 'Resume': 
+          console.log('Resume');
+          this.startedAt = this.audioCtx.currentTime;
           if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-          this.playAB (0, this.state.timeA, 
-            this.state.timeB - this.state.timeA);
+          this.isPlaying = true;
+          this.setState ({startButtonStr: 'Pause'})
+        break;
+
+        case 'Play':
+          console.log('Play');
+          if (this.inputAudio.length === 0) break;
+          this.playAB (0, this.state.timeA, this.state.timeB);
           this.setState ({startButtonStr: 'Pause'})
         break;
 
         default:
+          console.log('default', this.state.startButtonStr);
       }
 
       return;
@@ -243,10 +328,16 @@ class App extends Component {
       for (let i=0; i < this.inputAudio.length; i++)
         if (this.inputAudio[i].source) this.inputAudio[i].source.stop();
 
-      this.isPlaying = false;
-      this.setState ({startButtonStr: 'Play'})
+      this.setState ({loop: false, startButtonStr: 'Play', playingAt: 
+         this.state.timeA})
       return;
     }    
+
+    if (event.target.name === 'export'){
+      if (this.inputAudio.length === 0) return;
+        this.playAB (0, this.state.timeA, this.state.timeB, true);
+      return;
+    }
 
   } // end handlePlay()
 
@@ -255,13 +346,9 @@ class App extends Component {
     // console.log ('slider id= ', event.target.id);
 
     if (event.target.id === 'master'){
-      const gain = parseFloat(event.target.value);
-      this.setState({masterGain: gain});
-      for (let index=0; index < this.inputAudio.length; index++) {
-        if (this.inputAudio[index].masterGainNode !== null)
-          this.inputAudio[index].masterGainNode.gain.value 
-            = parseFloat(event.target.value/100.0); 
-      }
+      this.setState({masterGain: parseFloat(event.target.value)});
+      if (this.masterGainNode)
+        this.masterGainNode.gain.value = parseFloat(event.target.value/100.0);
       return;
     }
 
@@ -274,8 +361,8 @@ class App extends Component {
       this.inputAudio[index].gainNode.gain.value 
            = parseFloat(event.target.value/100.0); 
 
-  }
+  } // End handleGainSlider()
 
-} // end class
+}; // end class
 
 export default App;
