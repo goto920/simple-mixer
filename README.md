@@ -27,5 +27,7 @@ https://goto920.github.io/demos/simple-mixer/
 ### Export mix to local file (as wav) ==> DONE
 ### Adding pitch/speed control ==> DONE (Slow down only)
 
-## image
-![test image](images/simple-mixer.png)
+## images
+![test image](images/simple-mixer.png) 
+![test image2](images/simple-mixer-config.png)
+
