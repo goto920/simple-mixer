@@ -217,7 +217,10 @@ class App extends Component {
      <hr />
      Version: {version} &nbsp;&nbsp;
      <a href="https://goto920.github.io/demos/simple-mixer"
-     target='_blank' rel='noreferrer'>Guide/update</a>
+     target='_blank' rel='noreferrer'>Guide/update</a><br />
+     Speed/pitch control by &nbsp; 
+     <a href="https://github.com/cutterbl/SoundTouchJS"
+     target='_blank' rel='noreferrer'>soundtouch-js</a><br />
      </div>
     );
   }

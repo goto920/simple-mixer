@@ -24,5 +24,8 @@ stored in a folder (directory).
 https://goto920.github.io/demos/simple-mixer/
 
 ## Plan
-### Export mix to local file (as wav)
-### Adding pitch/speed control
+### Export mix to local file (as wav) ==> DONE
+### Adding pitch/speed control ==> DONE (Slow down only)
+
+## image
+![test image](images/simple-mixer.png)
