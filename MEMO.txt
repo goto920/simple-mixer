@@ -25,4 +25,122 @@ https://icons.getbootstrap.com/
 play/play-fill etc.
 pause/pause fill
 skip-start
+++++++++++++++++++++++
+How to use soundtouchJS as ScriptProcessorNode (in 2, out 2) in App.js?
 
+Dependency
+
+PitchShifter (in the example)
+  => constructor
+     this._soundtouch = new SoundTouch();
+     const source = new WebAudioBufferSource(buffer);
+       --> extract (LR interleaved)
+     this._filter = new SimpleFilter(source, this._soundtouch, onEnd);
+       --> 
+     this._node = getWebAudioNode(
+      context,
+      this._filter, // output?
+      (sourcePostion) => onUpdate.call(this, sourcePostion),
+      bufferSize
+    );
+ AudioBuffer 
+  --> Class WebAudioBufferSource 
+  --> class SimpleFilter 
+  --> node = func getWebAudioNode()
+
+
+import WebAudioBufferSource from './WebAudioBufferSource';
+--> no import
+       ---> extract(target, numFrames = 0, position = 0)
+
+modify: import getWebAudioNode from './getWebAudioNode';
+       createScriptProcessor(); 
+       onaudioprocess 
+        e.inputBuffer ==> not used 
+        filter.extract(samples, bufferSize); ==> e. outputBuffer
+        sourcePositionCallback(filter.sourcePosition);
+
+import SoundTouch from './SoundTouch';
+
+ --> import RateTransposer from './RateTransposer';
+       --> import AbstractFifoSamplePipe from './AbstractFifoSamplePipe';
+     import Stretch from './Stretch';
+       --> import AbstractFifoSamplePipe from './AbstractFifoSamplePipe';
+     import FifoSampleBuffer from './FifoSampleBuffer';
+
+     import testFloatEqual from './testFloatEqual';
+
+import SimpleFilter from './SimpleFilter';
+ --> import FilterSupport from './FilterSupport';
+     import noop from './noop';
+
+    fillInputBuffer(numFrames = 0) {
+      const samples = new Float32Array(numFrames * 2);
+      const numFramesExtracted = this.sourceSound.extract(
+      samples,
+      numFrames,
+      this._sourcePosition
+      );
+      this._sourcePosition += numFramesExtracted;
+      this.inputBuffer.putSamples(samples, 0, numFramesExtracted);
+    }
+   ==> inputBuffer --> FilterSupport(pipe)
+      pipe ==> soundtouch (FifoSampleBuffer() putSamples)
+
+import minsSecs from './minsSecs';
+import noop from './noop';
++++++++++++++++++++++++++++++
+
+SoundTouch.js
+
+constructor(){
+  this._inputBuffer = new FifoSampleBuffer(); // Input
+  this._intermediateBuffer = new FifoSampleBuffer();
+  this._outputBuffer = new FifoSampleBuffer(); // Output
+
+  this.virtualPitch = 1.0;
+  this.virtualRate = 1.0;
+  this.virtualTempo = 1.0;
+
+  this.calculateEffectiveRateAndTempo();
+}
+
+get inputBuffer() {
+  return this._inputBuffer;
+}
+
+get outputBuffer() {
+  return this._outputBuffer;
+}
+
+set rate(rate){
+  this.virtualRate = rate;
+  this.calculateEffectiveRateAndTempo(); 
+}
+
+set tempo(tempo) {
+  this.virtualTempo = tempo;
+  this.calculateEffectiveRateAndTempo();
+}
+
+set pitch(pitch) {
+  this.virtualPitch = pitch;
+  this.calculateEffectiveRateAndTempo();
+}
+
+calculateEffectiveRateAndTempo() {
+}
+
+process() { // called from FilterSupport.fillOutputBuffer()
+  if (this._rate > 1.0) {
+    this.stretch.process();
+       --> super(createBuffers)
+       --> inputBuffer.receiveSamples(midBuffer, overLapLength) 
+           (get inputChunkSize() sampleReq)
+    this.transposer.process();
+       --> super(createBuffers)
+  } else {
+    this.transposer.process();
+    this.stretch.process();
+  }
+}

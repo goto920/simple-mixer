@@ -2,13 +2,18 @@ import React, { Component }  from 'react';
 import './App.css';
 import packageJSON from '../package.json';
 import { IconButton, Tooltip } from '@material-ui/core';
+
+import SaverNode from './SaverNode';
+import MyPitchShifter from './MyPitchShifter';
+
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import PauseCircleOutlineOutlinedIcon
         from '@material-ui/icons/PauseCircleOutlineOutlined';
 import StopOutlinedIcon from '@material-ui/icons/StopOutlined';
 import LoopOutlinedIcon from '@material-ui/icons/LoopOutlined';
 import GetAppIcon from '@material-ui/icons/GetApp';
-import SaverNode from './SaverNode';
+import AddIcon from '@material-ui/icons/Add';
+import RemoveIcon from '@material-ui/icons/Remove';
 
 const version = packageJSON.subversion;
 
@@ -33,7 +38,11 @@ class App extends Component {
       startButtonStr: 'load files first!',
       gains: [],
       masterGain: 75,
+      playSpeed: 1.0,
+      playPitch: 0.0
     };
+
+    this.shifter = null;
 
     this.loadFiles = this.loadFiles.bind(this);
     this.handlePlay = this.handlePlay.bind(this);
@@ -83,6 +92,8 @@ class App extends Component {
        return (<span>{icon}</span>);
     };
 
+    this.inputAudio.sort((a,b) => a.name - b.name);
+
     const sliders = this.state.gains.map((value, index) => {
       return (
       <div className='slider' key={index}>
@@ -103,7 +114,7 @@ class App extends Component {
      <input type="file" name="loadFiles" multiple="multiple"
         accept="audio/*" onChange={this.loadFiles} /><br />
      </span>
-     <hr />
+     <div className='text-divider'>Time</div>
      PlayingAt: {this.state.playingAt.toFixed(2)}&nbsp;&nbsp; 
      Duration: {this.inputAudio[0] ? 
                 this.inputAudio[0].data.duration.toFixed(2) : 0.00}
@@ -118,8 +129,8 @@ class App extends Component {
      </div>
      A: {this.state.timeA.toFixed(2)} -- B: {this.state.timeB.toFixed(2)}
      </center>
-     <hr />
 
+     <div className='text-divider'>Player Controls</div>
      <PlayButton />
      <Tooltip title='stop and rewined to A'>
      <IconButton  
@@ -163,20 +174,50 @@ class App extends Component {
        color={this.state.isPlaying ? 'disabled' : 'primary'} />
      </IconButton>
      </Tooltip>
-     <hr />
+     <div className='text-divider'>Slow Down ({(100*this.state.playSpeed).toFixed(0)} %) (50 -- 100) </div>
+     10% <IconButton 
+         onClick={() => this.setSpeed({target: {name: 'sub10'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+         onClick={() => this.setSpeed({target: {name: 'add10'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+     &nbsp;&nbsp;&nbsp;
+     1% <IconButton
+        onClick={() => this.setSpeed({target: {name: 'sub1'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+        onClick={() => this.setSpeed({target: {name: 'add1'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+
+     <div className='text-divider'>Pitch ({this.state.playPitch.toFixed(1)}) (-12 -- +12)</div>
+     #/b <IconButton
+        onClick={() => this.setPitch({target: {name: 'sub1'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+        onClick={() => this.setPitch({target: {name: 'add1'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+     &nbsp;&nbsp;&nbsp;
+     10 cents <IconButton
+        onClick={() => this.setPitch({target: {name: 'sub10c'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+        onClick={() => this.setPitch({target: {name: 'add10c'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+
      <div className='slider' key='master'>
+       <div className='text-divider'>Master Gain ({this.state.masterGain})</div>
        <center>
-       Master Gain ({this.state.masterGain}) <br />
        0 <input type='range' id='master' name='gainSlider' 
           min='0' max='150' value={this.state.masterGain} 
            onChange={this.handleGainSlider} /> 150
        </center>
      </div>
-     <hr />
-     <center>Channel Gain</center>
+     <div className='text-divider'>Channel Gain</div>
      {sliders}
      <hr />
-     Version: {version}
+     Version: {version} &nbsp;&nbsp;
+     <a href="https://goto920.github.io/demos/simple-mixer"
+     target='_blank' rel='noreferrer'>Guide/update</a>
      </div>
     );
   }
@@ -188,11 +229,12 @@ class App extends Component {
     const files = event.target.files; 
 
     if (this.audioCtx !== null) this.audioCtx.close();
-    this.audioCtx = new AudioContext();
-    this.setState({isPlaying: false});
 
+    this.audioCtx = new AudioContext();
+    this.setState({gains: [], isPlaying: false});
     this.inputAudio = []; // clear
     const gains = [];
+
     for (let i=0; i < files.length; i++){
       const reader = new FileReader();
 
@@ -208,6 +250,8 @@ class App extends Component {
 
            gains.push(100);
            if (i => files.length -1){
+
+
              this.setState({
                startButtonStr: 'Play',
                timeA: 0,
@@ -223,9 +267,7 @@ class App extends Component {
       }.bind(this)
 
       reader.onerror = function (e){ console.log("File read ", reader.error);}
-
       reader.readAsArrayBuffer(files[i]);
-
     } // end for
 
   } // end loadFiles()
@@ -240,9 +282,17 @@ class App extends Component {
     if (this.audioCtx.state === 'suspended' ) this.audioCtx.resume();
     this.setState({isPlaying : true});
 
+    const shifter = new MyPitchShifter(this.audioCtx, 4096);
+    shifter.tempo = this.state.playSpeed;
+    shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
+
+    this.shifter = shifter;
+
     const saver 
-      = new SaverNode(this.audioCtx,this.inputAudio[0].data.sampleRate);
-    const saverNode = this.audioCtx.createScriptProcessor(4096,2,2);
+       = new SaverNode(this.audioCtx,this.inputAudio[0].data.sampleRate);
+    const saverNode = saver.node;
+
+    if (exportFile) saver.record = true;
 
     const masterGainNode = this.audioCtx.createGain();
       masterGainNode.gain.value = this.state.masterGain/100.0;
@@ -256,41 +306,56 @@ class App extends Component {
         gainNode.gain.value = this.state.gains[i]/100.0;
         this.inputAudio[i].gainNode = gainNode;
       source.connect(gainNode);
-      gainNode.connect(saverNode);
+      gainNode.connect(shifter.node);
     }
-
-    saverNode.connect(masterGainNode);
+  
+    shifter.node.connect(masterGainNode);
+    shifter.node.connect(saverNode); 
 
     masterGainNode.connect(this.audioCtx.destination);
 
-    if (exportFile) saver.setRecord(true);
-
+    shifter.totalInputFrames 
+       = (timeB - timeA)*this.inputAudio[0].data.sampleRate;
     this.startedAt = this.audioCtx.currentTime + delay;
     for (let i=0; i < this.inputAudio.length; i++){
       this.inputAudio[i].source.start(this.startedAt, timeA, timeB - timeA);
     }
     this.setState({playingAt: timeA});
 
+// shifter.node.onaudioprocess  /* in MyPitchShifter */
+
     let count = 0;
     saverNode.onaudioprocess = function(e){
       saver.process(e.inputBuffer,e.outputBuffer);
       if (count++ % 10 === 0)
-        this.setState({playingAt: timeA + saver.getProcessedTime()});
+        this.setState({
+          playingAt: timeA + this.state.playSpeed*saver.getProcessedTime()
+        });
     }.bind(this);
 
-    this.inputAudio[0].source.onended = function () {
-      console.log('source.onended');
+
+    // this.inputAudio[0].source.onended = 
+    shifter.onEnd = function () { // callback from MyPitchShifter
+
+      console.log('MyPitchShifter.onEnd');
 
       for (let i=0; i < this.inputAudio.length; i++)
-        this.inputAudio[i].gainNode.disconnect(saverNode);
-      saverNode.disconnect(masterGainNode);
-      if (exportFile) saver.exportFile('mix.wav');
+        this.inputAudio[i].gainNode.disconnect(shifter.node);
+
+      shifter.node.disconnect(masterGainNode); 
+      shifter.node.disconnect(saverNode); 
+
+      if (exportFile) saver.exportFile('mix_' + Date.now() + '.wav');
+      this.shifter = null;
+
       this.setState({
-        playingAt: this.state.timeA,
-        isPlaying: false
+         playingAt: this.state.timeA,
+         isPlaying: false
       }); 
 
       if (this.state.loop) this.playAB(2, timeA, timeB);
+        else this.setState({ startButtonStr: 'Play' }); 
+
     }.bind(this);
 
   } // END playAB
@@ -381,6 +446,47 @@ class App extends Component {
            = parseFloat(event.target.value/100.0); 
 
   } // End handleGainSlider()
+
+  setSpeed(e){
+    let speed = this.state.playSpeed;
+    switch(e.target.name){
+      case 'sub10': speed -=0.1; break;
+      case 'add10': speed +=0.1; break;
+      case 'sub1': speed -=0.01; break;
+      case 'add1': speed +=0.01; break;
+      default:
+    }
+    if (speed < 0.5) speed = 0.5;
+    else if (speed > 1.0) speed = 1.0;
+
+    if (this.shifter) {
+      this.shifter.tempo = speed;
+      // console.log("Tempo set: ", this.shifter.tempo);
+    }
+
+    this.setState({playSpeed: speed});
+  }
+
+  setPitch(e){
+    let pitch = this.state.playPitch;
+    switch(e.target.name){
+      case 'sub1': pitch -=1; break;
+      case 'add1': pitch +=1; break;
+      case 'sub10c': pitch -=0.1; break;
+      case 'add10c': pitch +=0.1; break;
+      default:
+    }
+
+    if (pitch < -12) pitch = -12.0;
+    else if (pitch > 12) pitch = 12.0
+
+    if (this.shifter){
+      this.shifter.pitch = Math.pow(2.0,pitch/12.0);
+      // console.log("Rate set: ", this.shifter.rate); 
+    }
+
+    this.setState({playPitch: pitch});
+  }
 
 }; // end class
 

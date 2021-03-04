@@ -10,7 +10,8 @@ class SaverNode {
     this.outputSamples = [[],[]];
 
     this.processed = 0;
-    this.record = false;
+    this._record = false; // add _ for setter/getter value
+    this._node = this.audioCtx.createScriptProcessor(4096,2,0);
 
     // this.process = this.process.bind(this);
     // this.exportFile = this.exportFile.bind(this);
@@ -18,7 +19,18 @@ class SaverNode {
   } // End constructor
 
   reset() {this.processed = 0; }
-  setRecord(val) {this.record = val;}
+
+  get node(){
+    return this._node;
+  }
+
+  get record(){
+    return this._record;
+  }
+
+  set record(value){
+    this._record = value;
+  }
 
   getProcessedTime() {
     return (this.processed/this.sampleRate); 
@@ -28,23 +40,17 @@ class SaverNode {
     return this.processed;
   } // End getCurrentTime
 
-  process(inputBuffer, outputBuffer){
-    const nc = outputBuffer.numberOfChannels;
+  process(inputBuffer, outputBuffer){ // no output
+    const nc = inputBuffer.numberOfChannels;
 
-    for (let channel = 0; channel < nc; channel++){
-      const inPCM = inputBuffer.getChannelData(channel);
-      const outPCM = outputBuffer.getChannelData(channel);
-
-      outPCM.set(inPCM);
-
-      if (this.record){
-        for(let i=0; i < outPCM.length; i++)
-          this.outputSamples[channel].push(outPCM[i]);
+    if (this._record){
+      for (let channel = 0; channel < nc; channel++){
+        const inPCM = inputBuffer.getChannelData(channel);
+        for(let i=0; i < inPCM.length; i++)
+          this.outputSamples[channel].push(inPCM[i]);
       }
-
     }
-    // console.log('outSamples: ', this.outputSamples[0].length);
- 
+
     this.processed += inputBuffer.getChannelData(0).length;
 
     return;
@@ -52,10 +58,8 @@ class SaverNode {
 
   exportFile(filename){
 
-    if (!this.record) return;
-
+    if (!this._record) return;
     console.log ('exportFile: ', filename);
-    console.log ('channels:', this.outputSamples.length);
     console.log('length: ', this.outputSamples[0].length);
 
     let outputBuffer = this.audioCtx.createBuffer(
@@ -67,15 +71,10 @@ class SaverNode {
     const left = outputBuffer.getChannelData(0);
     const right = outputBuffer.getChannelData(1);
 
-/*
-    for (let i = 0; i < left.length; i++ ){
-      left[i]  = this.outputSamples[0][i]; 
-      right[i] = this.outputSamples[1][i]; 
-    }
-*/
-
     left.set(this.outputSamples[0]);
     right.set(this.outputSamples[1]);
+    // TypedArray.prototype.set()
+    // typedarray.set(array[, offset])
 
     const blob = new Blob([toWav(outputBuffer)], {type: 'audio/vnd.wav'});
     saveAs(blob, filename);
