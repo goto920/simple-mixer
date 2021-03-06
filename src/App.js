@@ -179,7 +179,7 @@ class App extends Component {
        color={this.state.isPlaying ? 'disabled' : 'primary'} />
      </IconButton>
      </Tooltip>
-     <div className='text-divider'>Slow Down ({(100*this.state.playSpeed).toFixed(0)} %) (50 -- 100) </div>
+     <div className='text-divider'>Pitch ({(100*this.state.playSpeed).toFixed(0)} %) (50 -- 200, Realtime &lt; 100) </div>
      10% <IconButton 
          onClick={() => this.setSpeed({target: {name: 'sub10'}})} > 
      <RemoveIcon color='primary'/> </IconButton>
@@ -195,7 +195,7 @@ class App extends Component {
      <AddIcon color='primary'/> </IconButton>
 
      <div className='text-divider'>Pitch ({this.state.playPitch.toFixed(1)}) (-12 -- +12)</div>
-     #/b <IconButton
+     b/# <IconButton
         onClick={() => this.setPitch({target: {name: 'sub1'}})} > 
      <RemoveIcon color='primary'/> </IconButton>
      <IconButton
@@ -290,8 +290,16 @@ class App extends Component {
     if (this.audioCtx.state === 'suspended' ) this.audioCtx.resume();
     this.setState({isPlaying : true});
 
-    const shifter = new MyPitchShifter(this.audioCtx, 4096);
-    shifter.tempo = this.state.playSpeed;
+    const totalInputFrames 
+       = (timeB - timeA)*this.inputAudio[0].data.sampleRate;
+    const shifter 
+       = new MyPitchShifter(this.audioCtx, totalInputFrames, 4096,exportFile);
+
+    if (this.state.playSpeed > 1.0) {
+      shifter.tempo = 1.0;
+      this.setState({playSpeed: shifter.tempo});
+    } else shifter.tempo = this.state.playSpeed;
+
     shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
 
     this.shifter = shifter;
@@ -314,8 +322,6 @@ class App extends Component {
     shifter.node.connect(masterGainNode);
     masterGainNode.connect(this.audioCtx.destination);
 
-    shifter.totalInputFrames 
-       = (timeB - timeA)*this.inputAudio[0].data.sampleRate;
 
     this.startedAt = this.audioCtx.currentTime + delay;
     for (let i=0; i < this.inputAudio.length; i++){
@@ -505,12 +511,13 @@ class App extends Component {
         sampleRate
        ); // Offline
 
-    const shifter = new MyPitchShifter(audioCtx, 4096, true); 
+    const totalInputFrames 
+       = (timeB - timeA)*this.inputAudio[0].data.sampleRate;
+    const shifter 
+      = new MyPitchShifter(audioCtx, totalInputFrames, 4096, true); 
       // recording true
     shifter.tempo = this.state.playSpeed;
     shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
-    shifter.totalInputFrames 
-       = (timeB - timeA)*this.inputAudio[0].data.sampleRate;
 
     for (let i=0; i < this.inputAudio.length; i++){
       const source = audioCtx.createBufferSource();

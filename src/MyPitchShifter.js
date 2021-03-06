@@ -24,7 +24,7 @@ import * as toWav from 'audiobuffer-to-wav';
 const noop = function() {return;}
 
 export default class MyPitchShifter {
-  constructor(context, bufferSize, record = false){
+  constructor(context, numOfInputFrames, bufferSize, record = false){
 
     console.log('new MyPitchShifter instance');
     this.context = context;
@@ -38,7 +38,7 @@ export default class MyPitchShifter {
 
     this._node = context.createScriptProcessor(bufferSize,2,2);
     this._node.onaudioprocess = this.onaudioprocess.bind(this);
-    this._totalInputFrames = 0;
+    this._totalInputFrames = numOfInputFrames;
     this._recordedBuffer = null;
     this._nVirtualOutputFrames = 0;
     this._playingAt = 0;
