@@ -25,7 +25,14 @@ https://goto920.github.io/demos/simple-mixer/
 
 ## Plan
 ### Export mix to local file (as wav) ==> DONE
-### Adding pitch/speed control ==> DONE (Slow down only)
+### Adding pitch/speed control ==> DONE
+Realtime playback -- slow down only (--100%)
+Export with slow/fast  (50 -- 200%
+
+## soundtouchJS
+MyPitchShifter.js (alternative to PitchShifter.js)
+MyFilter.js (extends Simple-Filter.js)
+works as intermediate ScriptProcessorNode either with AudioContext and OfflineAudioContext
 
 ## images
 ![test image](images/simple-mixer.png) 
