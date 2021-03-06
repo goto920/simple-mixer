@@ -3,7 +3,7 @@ import './App.css';
 import packageJSON from '../package.json';
 import { IconButton, Tooltip } from '@material-ui/core';
 
-// import SaverNode from './SaverNode';
+import SaverNode from './SaverNode';
 import MyPitchShifter from './MyPitchShifter';
 
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
@@ -18,14 +18,12 @@ import RemoveIcon from '@material-ui/icons/Remove';
 const version = packageJSON.subversion;
 
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
-window.OfflineAudioContext = window.OfflineAudioContext 
- || window.webkitOfflineAudioContext;
 
 class App extends Component {
   constructor (props) {
     super();
     this.audioCtx = new AudioContext();
-    // this.offlineAudioCtx = null;
+    this.offlineAudioCtx = null;
     this.inputAudio = [];
     this.masterGainNode = null;
     this.sliderTimer = null;
@@ -52,7 +50,6 @@ class App extends Component {
     this.handleGainSlider = this.handleGainSlider.bind(this);
     this.handleTimeSlider = this.handleTimeSlider.bind(this);
     this.playAB = this.playAB.bind(this);
-    this.playABOffline = this.playABOffline.bind(this);
   }   
 
   componentWillUnmount () { // before closing app
@@ -66,7 +63,6 @@ class App extends Component {
        let icon;
        switch(this.state.startButtonStr){
          case 'load files first!':
-           // alert('Load file(s) first!');
            icon = 
              <Tooltip title='Load file first'>
              <span><IconButton>
@@ -238,7 +234,7 @@ class App extends Component {
 
     if (this.audioCtx !== null) this.audioCtx.close();
 
-    this.audioCtx = new window.AudioContext();
+    this.audioCtx = new AudioContext();
     this.setState({gains: [], isPlaying: false});
     this.inputAudio = []; // clear
     const gains = [];
@@ -296,6 +292,11 @@ class App extends Component {
 
     this.shifter = shifter;
 
+    const saver 
+       = new SaverNode(this.audioCtx,this.inputAudio[0].data.sampleRate);
+
+    if (exportFile) saver.record = true;
+
     const masterGainNode = this.audioCtx.createGain();
       masterGainNode.gain.value = this.state.masterGain/100.0;
     this.masterGainNode = masterGainNode;
@@ -311,47 +312,55 @@ class App extends Component {
       gainNode.connect(shifter.node);
     }
   
+    shifter.node.connect(saver.node); 
     shifter.node.connect(masterGainNode);
+
     masterGainNode.connect(this.audioCtx.destination);
+    saver.node.connect(this.audioCtx.destination); // for Chrome
 
     shifter.totalInputFrames 
        = (timeB - timeA)*this.inputAudio[0].data.sampleRate;
-
     this.startedAt = this.audioCtx.currentTime + delay;
     for (let i=0; i < this.inputAudio.length; i++){
       this.inputAudio[i].source.start(this.startedAt, timeA, timeB - timeA);
     }
     this.setState({playingAt: timeA});
 
-    const timer = setInterval(
-    () => this.setState({playingAt: timeA + shifter.playingAt}) , 1000);
+    let count = 0;
+    saver.node.onaudioprocess = function(e){
+      // console.log('saver onaudioprocess');
+      saver.process(e.inputBuffer,e.outputBuffer);
+      if (count++ % 10 === 0)
+        this.setState({
+          playingAt: timeA + this.state.playSpeed*saver.getProcessedTime()
+        });
+    }.bind(this);
 
+
+    // this.inputAudio[0].source.onended = 
     shifter.onEnd = function () { // callback from MyPitchShifter
 
       console.log('MyPitchShifter.onEnd');
-      this.setState({playingAt: timeA + shifter.playingAt});
-      clearInterval(timer);
 
       for (let i=0; i < this.inputAudio.length; i++)
-        this.inputAudio[i].gainNode.disconnect();
+        this.inputAudio[i].gainNode.disconnect(shifter.node);
 
-      shifter.node.disconnect(); 
+      shifter.node.disconnect(masterGainNode); 
+      shifter.node.disconnect(saver.node); 
+      saver.node.disconnect(this.audioCtx.destination);
+
+      if (exportFile) saver.exportFile('mix_' + Date.now() + '.wav');
       this.shifter = null;
 
       this.setState({
-        playingAt: this.state.timeA,
-        isPlaying: false
-      });
+         playingAt: this.state.timeA,
+         isPlaying: false
+      }); 
 
       if (this.state.loop) this.playAB(2, timeA, timeB);
         else this.setState({ startButtonStr: 'Play' }); 
 
     }.bind(this);
-
-    /* When stop button is pressed */
-    this.inputAudio[0].source.onended = function (e) { 
-      shifter.stop();
-    }
 
   } // END playAB
 
@@ -362,7 +371,7 @@ class App extends Component {
 
   handlePlay(event){
 
-    console.log('handlePlay name/button', event.target.name, this.state.startButtonStr);
+    console.log('Name', event.target.name, this.state.startButtonStr);
 
     if (event.target.name === 'startPause') {
 
@@ -414,8 +423,7 @@ class App extends Component {
 
     if (event.target.name === 'export'){
       if (this.inputAudio.length === 0) return;
-      // this.playAB (0, this.state.timeA, this.state.timeB, true);
-      this.playABOffline (0, this.state.timeA, this.state.timeB, true);
+        this.playAB (0, this.state.timeA, this.state.timeB, true);
       return;
     }
 
@@ -453,7 +461,7 @@ class App extends Component {
       default:
     }
     if (speed < 0.5) speed = 0.5;
-    else if (speed > 2.0) speed = 2.0;
+    else if (speed > 1.0) speed = 1.0;
 
     if (this.shifter) {
       this.shifter.tempo = speed;
@@ -461,7 +469,7 @@ class App extends Component {
     }
 
     this.setState({playSpeed: speed});
-  } // End set speed
+  }
 
   setPitch(e){
     let pitch = this.state.playPitch;
@@ -482,90 +490,7 @@ class App extends Component {
     }
 
     this.setState({playPitch: pitch});
-  } // End setPitch
-
-  playABOffline(delay, timeA, timeB, exportFile=false){
-    console.log('playAB Offline', 
-    delay, timeA, timeB, 'export: ', exportFile);
-
-    if (this.state.isPlaying) return;
-    
-    this.setState({isPlaying : true});
-    this.shifter = null;
-
-    const sampleRate = this.inputAudio[0].data.sampleRate;
-    const channels = this.inputAudio[0].data.numberOfChannels;
-    const nInputFrames = (timeB - timeA)*sampleRate;
-    const nOutputFrames = Math.max(nInputFrames, 
-          nInputFrames/this.state.playSpeed);
-    const audioCtx 
-     = new window.OfflineAudioContext(
-        channels, // typically 2
-        nOutputFrames + 1.0*sampleRate, // length in frames (add 1 sec)
-        sampleRate
-       ); // Offline
-
-    const shifter = new MyPitchShifter(audioCtx, 4096, true); 
-      // recording true
-    shifter.tempo = this.state.playSpeed;
-    shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
-    shifter.totalInputFrames 
-       = (timeB - timeA)*this.inputAudio[0].data.sampleRate;
-
-    for (let i=0; i < this.inputAudio.length; i++){
-      const source = audioCtx.createBufferSource();
-      source.buffer = this.inputAudio[i].data;
-        this.inputAudio[i].source = source;
-      const gainNode = audioCtx.createGain();
-        gainNode.gain.value = this.state.gains[i]/100.0;
-        this.inputAudio[i].gainNode = gainNode;
-      source.connect(gainNode);
-      gainNode.connect(shifter.node);
-    }
-
-    shifter.node.connect(audioCtx.destination);
-    this.startedAt = audioCtx.currentTime + delay;
-    for (let i=0; i < this.inputAudio.length; i++){
-      this.inputAudio[i].source.start(this.startedAt, timeA, timeB - timeA);
-    }
-    audioCtx.startRendering();
-
-    this.setState({playingAt: timeA});
-
-    shifter.onEnd = function () { // callback from MyPitchShifter
-      console.log('MyPitchShifter.onEnd');
-    
-      for (let i=0; i < this.inputAudio.length; i++)
-        this.inputAudio[i].gainNode.disconnect();
-     /*
-      console.log('playingAt ', shifter.playingAt);
-      shifter.exportToFile('mix_' + Date.now() + '.wav');
-
-      this.setState({
-         playingAt: this.state.timeA,
-         isPlaying: false,
-         startButtonStr: 'Play'
-      }); 
-     */
-
-    }.bind(this);
-
-    audioCtx.oncomplete = function(e) {
-      console.log('Offline render complete (data is useless) = ', 
-          e.renderedBuffer.length);
-      console.log('shifter I/O', 
-      shifter.totalInputFrames,
-      shifter.totalVirtualOutputFrames);
-
-      this.setState({
-        playingAt: timeA + shifter.playingAt,
-        isPlaying: false
-      });
-
-      shifter.exportToFile('mix_' + Date.now() + '.wav');
-    }.bind(this);
-
-  } // END playAB Offline
+  }
 
 }; // end class
 

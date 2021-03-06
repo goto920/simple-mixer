@@ -1,0 +1,17 @@
+/*
+   Written by goto at kmgoto.jp (Mar. 2021)
+   Copyright of my code is not claimed.
+
+   Based on soundtouchjs/src/PitchShifter.js, SimpleFilter.js
+
+   Modified for real time playback.
+
+   PitchShifter ---> MyPitchShifter (minimum code)
+                     includes ScriptProcessorNode
+
+   MyFilter extends SimpleFilter
+
+   Pitch modification and slow down work.
+   Real time fast playback is impossible by nature.
+
+ */

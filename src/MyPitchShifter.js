@@ -1,12 +1,36 @@
+/*
+   Written by goto at kmgoto.jp (Mar. 2021)
+   Copyright of my code is not claimed.
+
+   Based on soundtouchjs/src/PitchShifter.js, SimpleFilter.js
+
+   Modified for real time playback.
+
+   PitchShifter ---> MyPitchShifter (minimum code)
+                     includes ScriptProcessorNode
+
+   MyFilter extends SimpleFilter
+
+   Pitch modification and slow down work.
+   Real time fast playback is impossible by nature.
+
+ */
+
 import * as SoundTouch from 'soundtouchjs';
 import MyFilter from './MyFilter';
+import {saveAs} from 'file-saver';
+import * as toWav from 'audiobuffer-to-wav';
 
 const noop = function() {return;}
 
 export default class MyPitchShifter {
-  constructor(context,bufferSize){
+  constructor(context, bufferSize, record = false){
+
+    console.log('new MyPitchShifter instance');
     this.context = context;
     this.bufferSize = bufferSize;
+    this.record = record;
+    this.recordedSamples = [[],[]];
 
     this._soundtouch = new SoundTouch.SoundTouch();
     this._filter = new MyFilter(this._soundtouch, noop); 
@@ -14,46 +38,87 @@ export default class MyPitchShifter {
 
     this._node = context.createScriptProcessor(bufferSize,2,2);
     this._node.onaudioprocess = this.onaudioprocess.bind(this);
+    this._totalInputFrames = 0;
+    this._recordedBuffer = null;
+    this._nVirtualOutputFrames = 0;
+    this._playingAt = 0;
 
     this.outSamples = new Float32Array(bufferSize*2);
     this.inSamples  = new Float32Array(bufferSize*2);
     this.sampleRate = context.sampleRate; 
-    this._totalInputFrames = 0;
-    this.processedFrames = 0;
+    this.nInputFrames = 0;
     this.moreInput = true;
-    this.moreOutput = true;
+
   }
 
   set totalInputFrames(nframes){ this._totalInputFrames = nframes;}
+  get totalInputFrames(){ return this._totalInputFrames;}
+
+  get totalVirtualOutputFrames(){ return this._nVirtualOutputFrames;}
+
+  get playingAt(){
+    this._playingAt = this._nVirtualOutputFrames/this.sampleRate;
+    return this._playingAt;
+  }
+
   get node(){ return this._node; }
   set tempo(tempo){ this._soundtouch.tempo = tempo; }
   get tempo(){ return this._soundtouch.tempo; }
   set pitch(pitch){ this._soundtouch.pitch = pitch; }
   get rate(){ return this._soundtouch.rate; }
 
-  set onEnd(func){
-    this._onEnd = func;
+  get recordedBuffer(){ 
+    if (this._recordedBuffer === null) this.createProcessedBuffer();
+    return this._recordedBuffer; 
   }
 
-  onaudioprocess = function(e){
-    // this.bypass(e.inputBuffer,e.outputBuffer); // through for test
+  set onEnd(func){ this._onEnd = func; }
 
-    if (this.moreInput 
-        && this.processedFrames > this._totalInputFrames){
-      console.log ('onaudioprocess: End of input');
-      this.moreInput = false;
-    }
+  stop(){ 
+    console.log('shifter stop');
+    this._node.onaudioprocess = null; 
+    this._node.disconnect();
+    this._onEnd(); 
+  }
 
-    if (this.moreOutput){
+
+  createProcessedBuffer(){
+
+    if (!this.record) return;
+
+    const outputBuffer = this.context.createBuffer(
+      this.recordedSamples.length, // channels
+      this.recordedSamples[0].length, // sample length
+      this.sampleRate
+    );
+
+    const left = outputBuffer.getChannelData(0);
+    const right = outputBuffer.getChannelData(1);
+    left.set(this.recordedSamples[0]);
+    right.set(this.recordedSamples[1]);
+    // Typedarray.set(array[, offset])
+
+    this._recordedBuffer = outputBuffer;
+    // console.log('this._recordedBuffer len = ', this._recordedBuffer.length);
+
+  } // end createProcessedBuffer()
+
+  onaudioprocess(e){
+
+   /* // through for test
+
+    if (this._nVirtualOutputFrames <= this._totalInputFrames){
+      this.bypass(e.inputBuffer,e.outputBuffer); // through for test
+      this._nVirtualOutputFrames += e.outputBuffer.length;
+    } else this.stop();
+   */
+
+    if (this._nVirtualOutputFrames <= this._totalInputFrames){
       const nOutputFrames = this.process(e.inputBuffer,e.outputBuffer);
-      if (!this.moreInput && nOutputFrames === 0) {
-        console.log ('onaudioprocess: End of output');
-        this.moreOutput = false;
-        this._onEnd(); // callback
-      }
-    }
+      this._nVirtualOutputFrames += nOutputFrames*this._soundtouch.tempo;
+    } else this.stop();
 
-    if (this.moreInput) this.processedFrames += e.inputBuffer.length;
+    this.nInputFrames += e.inputBuffer.length; 
 
   }
 
@@ -66,22 +131,25 @@ export default class MyPitchShifter {
     const left = outputBuffer.getChannelData(0);
     const right = outputBuffer.getChannelData(1);
 
-    if (this.moreInput) {
-      for (let i = 0; i < inputBuffer.length; i++) {
+    for (let i = 0; i < inputBuffer.length; i++) {
         inSamples[2*i] = leftIn[i]; 
         inSamples[2*i + 1] = rightIn[i]; 
-      }
-      this._filter.putSource(inSamples);
     }
+    this._filter.putSource(inSamples);
 
    // Output  node.onaudioprocess in function getWebAudioNode
    // context, filter, sourcePositionCallback
     const outSamples = this.outSamples;
-    const framesExtracted 
-      = this._filter.extract(outSamples, this.bufferSize);
+    const framesExtracted = this._filter.extract(outSamples, this.bufferSize);
 
     for (let i=0; i < framesExtracted; i++) {
-       left[i] = outSamples[i * 2]; right[i] = outSamples[i * 2 + 1];} 
+      left[i]  = outSamples[i * 2]; 
+      right[i] = outSamples[i * 2 + 1];
+      if (this.record) {
+        this.recordedSamples[0].push(left[i]);
+        this.recordedSamples[1].push(right[i]);
+      }
+    } 
 
     return framesExtracted;
 
@@ -90,12 +158,31 @@ export default class MyPitchShifter {
  // just copy inputBuffer to outputBuffer for test 
   bypass(inputBuffer, outputBuffer){ 
     const nc = outputBuffer.numberOfChannels;
-
     for (let channel=0; channel < nc; channel++){
-      const out = outputBuffer.getChannelData(channel);
-      out.set(inputBuffer.getChannelData(channel)); 
-  //    out.push(inputBuffer.getChannelData(channel)); // test (double)
+      const input = inputBuffer.getChannelData(channel);
+      const output = outputBuffer.getChannelData(channel);
+      output.set(inputBuffer.getChannelData(channel)); 
+
+      if (this.record) 
+        for (let i = 0; i < outputBuffer.length; i++) 
+          this.recordedSamples[channel].push(input[i]);
     }
-  }
+
+  } // End bypass()
+
+  exportToFile (filename){
+    if (!this.record) return;
+
+    console.log ('exportToFile: ', filename,
+      'length: ', this.recordedSamples[0].length);
+
+    if (this._recordedBuffer === null) this.createProcessedBuffer();
+
+    const blob = new Blob([toWav(this._recordedBuffer)], 
+       {type: 'audio/vnd.wav'});
+    saveAs(blob, filename);
+
+    return;
+  } // end exportToFile()
 
 };
