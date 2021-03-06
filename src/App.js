@@ -114,7 +114,8 @@ class App extends Component {
 
     return (
      <div className="App">
-     KG's Simple Mixer (Select stem files and play)<hr />
+     KG's Simple Mixer <br />for stem files with speed/pitch control
+<hr />
      <span className="selectFile">
      <input type="file" name="loadFiles" multiple="multiple"
         accept="audio/*" onChange={this.loadFiles} /><br />
@@ -179,7 +180,10 @@ class App extends Component {
        color={this.state.isPlaying ? 'disabled' : 'primary'} />
      </IconButton>
      </Tooltip>
-     <div className='text-divider'>Pitch ({(100*this.state.playSpeed).toFixed(0)} %) (50 -- 200, Realtime &lt; 100) </div>
+     <div className='text-divider'>Pitch (
+<font color= 'green'>{(100*this.state.playSpeed).toFixed(0)}%)</font>
+</div>
+(Export 50 -- 200, Realtime playback &le; 100)<br/> 
      10% <IconButton 
          onClick={() => this.setSpeed({target: {name: 'sub10'}})} > 
      <RemoveIcon color='primary'/> </IconButton>
@@ -194,7 +198,7 @@ class App extends Component {
         onClick={() => this.setSpeed({target: {name: 'add1'}})} > 
      <AddIcon color='primary'/> </IconButton>
 
-     <div className='text-divider'>Pitch ({this.state.playPitch.toFixed(1)}) (-12 -- +12)</div>
+     <div className='text-divider'>Pitch (<font color='green'>{this.state.playPitch.toFixed(1)}</font>) (-12 -- +12)</div>
      b/# <IconButton
         onClick={() => this.setPitch({target: {name: 'sub1'}})} > 
      <RemoveIcon color='primary'/> </IconButton>
@@ -226,6 +230,17 @@ class App extends Component {
      Speed/pitch control by &nbsp; 
      <a href="https://github.com/cutterbl/SoundTouchJS"
      target='_blank' rel='noreferrer'>soundtouch-js</a><br />
+<hr />
+<b>Brief help</b>
+<ol>
+<li>Select a file or a set of stem files from local disk or a cloud drive 
+your device has access</li>
+<li>Choose time range with setA and setB</li>
+<li>Set playback speed and pitch</li> 
+<li>Play A to B (speed &le; 100%) or export A to B</li>
+<li>Repeat with 2 sec interval for practice</li>
+</ol>
+<hr />
      </div>
     );
   }
