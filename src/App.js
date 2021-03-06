@@ -180,7 +180,7 @@ class App extends Component {
        color={this.state.isPlaying ? 'disabled' : 'primary'} />
      </IconButton>
      </Tooltip>
-     <div className='text-divider'>Pitch (
+     <div className='text-divider'>Speed (
 <font color= 'green'>{(100*this.state.playSpeed).toFixed(0)}%)</font>
 </div>
 (Export 50 -- 200, Realtime playback &le; 100)<br/> 
