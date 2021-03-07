@@ -4,15 +4,17 @@
 
    Based on soundtouchjs/src/PitchShifter.js, SimpleFilter.js
 
-   Modified for real time playback.
+   Modified for use as intermediate ScriptProcessorNode.
+   Note: Output does not work for OfflineAudioContext.
 
-   PitchShifter ---> MyPitchShifter (minimum code)
+   1) PitchShifter ---> MyPitchShifter (minimum code)
                      includes ScriptProcessorNode
 
-   MyFilter extends SimpleFilter
+   2) MyFilter extends SimpleFilter
 
-   Pitch modification and slow down work.
-   Real time fast playback is impossible by nature.
+   Pitch modification and slow down/speed up work.
+   Slow down only for real-time playback.
+   fast playback is impossible by nature.
 
  */
 
@@ -35,6 +37,7 @@ export default class MyPitchShifter {
     this._soundtouch = new SoundTouch.SoundTouch();
     this._filter = new MyFilter(this._soundtouch, noop); 
     this._onEnd = noop;
+    this._onUpdate = noop;
 
     this._node = context.createScriptProcessor(bufferSize,2,2);
     this._node.onaudioprocess = this.onaudioprocess.bind(this);
@@ -47,7 +50,7 @@ export default class MyPitchShifter {
     this.inSamples  = new Float32Array(bufferSize*2);
     this.sampleRate = context.sampleRate; 
     this.nInputFrames = 0;
-    this.moreInput = true;
+    // this.moreInput = true;
 
   }
 
@@ -73,6 +76,7 @@ export default class MyPitchShifter {
   }
 
   set onEnd(func){ this._onEnd = func; }
+  set onUpdate(func){ this._onUpdate = func; }
 
   stop(){ 
     console.log('shifter stop');
@@ -105,8 +109,7 @@ export default class MyPitchShifter {
 
   onaudioprocess(e){
 
-   /* // through for test
-
+   /* // pass through for test
     if (this._nVirtualOutputFrames <= this._totalInputFrames){
       this.bypass(e.inputBuffer,e.outputBuffer); // through for test
       this._nVirtualOutputFrames += e.outputBuffer.length;
@@ -116,6 +119,7 @@ export default class MyPitchShifter {
     if (this._nVirtualOutputFrames <= this._totalInputFrames){
       const nOutputFrames = this.process(e.inputBuffer,e.outputBuffer);
       this._nVirtualOutputFrames += nOutputFrames*this._soundtouch.tempo;
+      this._onUpdate();
     } else this.stop();
 
     this.nInputFrames += e.inputBuffer.length; 

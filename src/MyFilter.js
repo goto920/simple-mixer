@@ -4,15 +4,17 @@
 
    Based on soundtouchjs/src/PitchShifter.js, SimpleFilter.js
 
-   Modified for real time playback.
+   Modified for use as intermediate ScriptProcessorNode.
+   Note: Output does not work for OfflineAudioContext.
 
-   PitchShifter ---> MyPitchShifter (minimum code)
+   1) PitchShifter ---> MyPitchShifter (minimum code)
                      includes ScriptProcessorNode
 
-   MyFilter extends SimpleFilter
+   2) MyFilter extends SimpleFilter
 
-   Pitch modification and slow down work.
-   Real time fast playback is impossible by nature.
+   Pitch modification and slow down/speed up work.
+   Slow down only for real-time playback.
+   fast playback is impossible by nature.
 
  */
 
