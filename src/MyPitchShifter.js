@@ -26,18 +26,22 @@ import * as toWav from 'audiobuffer-to-wav';
 const noop = function() {return;}
 
 export default class MyPitchShifter {
-  constructor(context, numOfInputFrames, bufferSize, record = false){
+  constructor(context, numOfInputFrames, bufferSize, 
+      record = false, bypass = false){
 
     console.log('new MyPitchShifter instance');
     this.context = context;
     this.bufferSize = bufferSize;
     this.record = record;
+    this.bypass = bypass;
     this.recordedSamples = [[],[]];
+    this.lastPlayingAt = 0;
 
     this._soundtouch = new SoundTouch.SoundTouch();
     this._filter = new MyFilter(this._soundtouch, noop); 
     this._onEnd = noop;
     this._onUpdate = noop;
+    this._onUpdateInterval = 0.5;
 
     this._node = context.createScriptProcessor(bufferSize,2,2);
     this._node.onaudioprocess = this.onaudioprocess.bind(this);
@@ -60,7 +64,6 @@ export default class MyPitchShifter {
   get totalVirtualOutputFrames(){ return this._nVirtualOutputFrames;}
 
   get playingAt(){
-    this._playingAt = this._nVirtualOutputFrames/this.sampleRate;
     return this._playingAt;
   }
 
@@ -77,12 +80,16 @@ export default class MyPitchShifter {
 
   set onEnd(func){ this._onEnd = func; }
   set onUpdate(func){ this._onUpdate = func; }
+  set onUpdateInterval(val){ this._onUpdateInterval = val;}
+  get onUpdateInterval(){ return this._onUpdateInterval;}
 
   stop(){ 
-    console.log('shifter stop');
-    this._node.onaudioprocess = null; 
-    this._node.disconnect();
-    this._onEnd(); 
+    if (this._node.onaudioprocess) {
+      console.log('shifter stop');
+      this._node.onaudioprocess = null; 
+      this._node.disconnect();
+      this._onEnd(); 
+    }
   }
 
 
@@ -109,20 +116,26 @@ export default class MyPitchShifter {
 
   onaudioprocess(e){
 
-   /* // pass through for test
-    if (this._nVirtualOutputFrames <= this._totalInputFrames){
-      this.bypass(e.inputBuffer,e.outputBuffer); // through for test
-      this._nVirtualOutputFrames += e.outputBuffer.length;
-    } else this.stop();
-   */
+   if (this.bypass) { // pass through for test
+     if (this._nVirtualOutputFrames <= this._totalInputFrames){
+       this.passThrough(e.inputBuffer,e.outputBuffer); // through for test
+       this._nVirtualOutputFrames += e.outputBuffer.length;
+     } else this.stop();
+   } else {
+     if (this._nVirtualOutputFrames <= this._totalInputFrames){
+       const nOutputFrames = this.process(e.inputBuffer,e.outputBuffer);
+       this._nVirtualOutputFrames += nOutputFrames*this._soundtouch.tempo;
+     } else this.stop();
+   }
 
-    if (this._nVirtualOutputFrames <= this._totalInputFrames){
-      const nOutputFrames = this.process(e.inputBuffer,e.outputBuffer);
-      this._nVirtualOutputFrames += nOutputFrames*this._soundtouch.tempo;
+   this._playingAt = this._nVirtualOutputFrames/this.sampleRate;
+
+   if (this.playingAt - this.lastPlayingAt >= this._onUpdateInterval) {
       this._onUpdate();
-    } else this.stop();
+      this.lastPlayingAt = this._playingAt;
+   }
 
-    this.nInputFrames += e.inputBuffer.length; 
+   this.nInputFrames += e.inputBuffer.length; 
 
   }
 
@@ -160,7 +173,7 @@ export default class MyPitchShifter {
   } // End process
 
  // just copy inputBuffer to outputBuffer for test 
-  bypass(inputBuffer, outputBuffer){ 
+  passThrough(inputBuffer, outputBuffer){ 
     const nc = outputBuffer.numberOfChannels;
     for (let channel=0; channel < nc; channel++){
       const input = inputBuffer.getChannelData(channel);
@@ -172,7 +185,7 @@ export default class MyPitchShifter {
           this.recordedSamples[channel].push(input[i]);
     }
 
-  } // End bypass()
+  } // End pathThrough()
 
   exportToFile (filename){
     if (!this.record) return;
