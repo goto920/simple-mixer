@@ -33,7 +33,7 @@ MyPitchShifter.js
 MyFilter.js (extends SimpleFilter)
 ```
 
-They work as intermediate ScriptProcessorNode either with AudioContext 
+They work as an intermediate ScriptProcessorNode either with AudioContext 
 or OfflineAudioContext (NG for iOS).
 
 
@@ -128,8 +128,6 @@ shifter.pitch = Math.pow(2.0, semiTonePitch/12.0);
 
 const source = context.createBufferSource();
 source.buffer = audioBuffer; // audioBuffer is the data to play 
-const masterGainNode = context.createGain(); 
-masterGainNode.gain.value = 0.75;
 source.connect(shifter.node); 
 shifter.node.connect(context.destination);
 /* Note: shifter.node is the last node for OfflineAudioContext. 
