@@ -2,10 +2,11 @@
 
 This program mixes stem track files, plays, exports the
 result to file;
-typically separated with a audio source separation software such as Spleeter.
+typically separated with an audio source separation software such as Spleeter.
 
-Real-time playback speed is 1.0 or less (choppy at >1.0), but
-is not limited for export (or playback after processing).
+Using soundtouchjs, 
+real-time playback speed is 0 < speed <= 1.0 (choppy playback if speed >1.0), 
+but is not limited (speed > 0) for export (or playback after processing).
 
 Written with React and Web Audio API.
 
