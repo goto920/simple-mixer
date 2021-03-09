@@ -43,7 +43,7 @@ Arguments may change (see the source code).
 
 #### For AudioContext (real-time playback)
 ```
-import MyPitchShifter from 'MyPitchShifter';
+import MyPitchShifter from './MyPitchShifter';
 
 const context = new AudioContext();
 const source = context.createBufferSource();
@@ -106,7 +106,7 @@ source.onended = function(e) {
 Surprisingly this worked on macOS Safari and Chrome.
 
 ```
-import MyPitchShifter from 'MyPitchShifter';
+import MyPitchShifter from './MyPitchShifter';
 
 let tempo = 1.5; 
 const channels = 2;
