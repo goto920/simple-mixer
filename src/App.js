@@ -408,7 +408,7 @@ class App extends Component {
     } else context = this.audioCtx;
 
     const shifter = new MyPitchShifter(
-       context, nInputFrames, 4096, recording, offline, this.state.bypass);
+       context, nInputFrames, 4096, recording, this.state.bypass);
 
     if (!offline) this.shifter = shifter; // to allow change while playing
 
