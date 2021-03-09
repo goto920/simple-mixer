@@ -27,7 +27,7 @@ https://goto920.github.io/demos/simple-mixer/
 
 ```
 npm install soundtouchjs
-copy these these two files in your project
+copy these two files in your project
 
 MyPitchShifter.js
 MyFilter.js (extends SimpleFilter)
@@ -39,7 +39,7 @@ or OfflineAudioContext (NG for iOS).
 
 ### Examples
 Currently stereo audio source only.
-Arguments may change (see the source code).
+Arguments for MyPitchShifter() may change (see the source code).
 
 #### For AudioContext (real-time playback)
 ```
@@ -169,6 +169,8 @@ shifter.onEnd = function () {
 - Export mix to local file (as wav) ==> OK
 - Adding pitch/speed control ==> OK
 - Realtime playback -- slow down only (50 -- 100%) ==> OK
-- Process Offline and export with slow/fast playback (50 -- 200%) ==> OK
+- Process offline and export with slow/fast playback (50 -- 200%) ==> OK
+  - Export after real-time playback for iOS (with AudioContext)
+  - Real-time playback is choppy if speed > 100%.
 - Select file one by one (for iOS devices) ==> OK
 
