@@ -159,7 +159,7 @@ shifter.onEnd = function () {
 
 
 /* e.renderedBuffer 
-  should be the processed samples but actuall it is collapsed.
+  should be the processed samples but actually it is collapsed.
 */
 // context.oncomplete = function(e) {
 //  console.log( 'Offline render complete length = ', e.renderedBuffer.length);
@@ -172,5 +172,5 @@ shifter.onEnd = function () {
 - Adding pitch/speed control ==> OK
 - Realtime playback -- slow down only (50 -- 100%) ==> OK
 - Process Offline and export with slow/fast playback (50 -- 200%) ==> OK
-
+- Select file one by one (for iOS devices) ==> OK
 
