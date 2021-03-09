@@ -1,7 +1,12 @@
 # simple-mixer (experimental since 2021-02-26)
 
-This program mixes stem track files.
-Typically separated with a audio source separation software such as Spleeter.
+This program mixes stem track files, plays, exports the
+result to file;
+typically separated with a audio source separation software such as Spleeter.
+
+Real-time playback speed is 1.0 or less (choppy at >1.0), but
+is not limited for export (or playback after processing).
+
 Written with React and Web Audio API.
 
 ## input audio files (wav, mp3, or whatever the browser supports)
@@ -51,7 +56,7 @@ const shifter = new MyPitchShifter(
        context, nInputFrames, bufsize, recording, bypass);
 
 shifter.tempo = 0.8; 
-  // 80% speed (may be changed during playback). Choppy sound for tempo > 1
+  // 80% speed (may be changed during playback). Choppy sound if tempo > 1.
 const semiTonePitch = 1.0; // one semitone up (#)
 shifter.pitch = Math.pow(2.0, semiTonePitch/12.0); 
   // may be changed during playback
@@ -100,9 +105,9 @@ source.onended = function(e) {
 Surprisingly this worked on macOS Safari and Chrome.
 
 ```
-import {MyPitchShifter} from 'MyPitchShifter';
+import MyPitchShifter from 'MyPitchShifter';
 
-let tempo = 0.8; 
+let tempo = 1.5; 
 const channels = 2;
 const nInputFrames = audioBuffer.length*audioBuffer.sampleRate;
 const nOutputFrames = Math.max(nInputFrames, nInputFrames/tempo);
@@ -166,7 +171,5 @@ shifter.onEnd = function () {
 - Adding pitch/speed control ==> OK
 - Realtime playback -- slow down only (50 -- 100%) ==> OK
 - Process Offline and export with slow/fast playback (50 -- 200%) ==> OK
-
-
 
 
