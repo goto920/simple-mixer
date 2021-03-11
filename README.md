@@ -173,4 +173,4 @@ shifter.onEnd = function () {
   - Export after real-time playback for iOS (with AudioContext)
   - Real-time playback is choppy if speed > 100%.
 - Select file one by one (for iOS devices) ==> OK
-
+- Worklet version ==> trying in branch worklet
