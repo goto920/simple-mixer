@@ -153,8 +153,6 @@ class App extends Component {
     };
 
 
-  //  this.inputAudio.sort((a,b) => a.name - b.name);
-
 /*
     if (this.state.gains.length > 0 ) {
       this.sliders = this.state.gains.map((value, index) => {
@@ -579,8 +577,10 @@ class App extends Component {
 
     // if (!offline) /* When stop button is pressed */
       this.inputAudio[0].source.onended = function (e) { 
-        shifter.stop(); 
-        this.setState({isPlaying: false, startButtonStr: 'Play'});
+        if (this.state.playingAt < timeB) {
+          shifter.stop(); 
+          this.setState({isPlaying: false, startButtonStr: 'Play'});
+        }
       }.bind(this)
 
     if (offline)
@@ -770,9 +770,12 @@ class App extends Component {
 
     const options = {
       processorOptions: {
-        bypass: true, recording: false,
-        nInputFrames: nInputFrames, processedAudioBuffer: [],
-        updateInterval: 1.0, sampleRate: sampleRate
+        bypass: this.state.bypass,
+        recording: recording,
+        nInputFrames: nInputFrames, 
+        processedAudioBuffer: [],
+        updateInterval: 1.0, 
+        sampleRate: sampleRate
       },
     };
 
@@ -784,35 +787,43 @@ class App extends Component {
 
     this.shifter = shifter;
 
-/*
     shifter.tempo = this.state.playSpeed;
     shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
 
-    shifter.onEnd = function () { // callback from MyPitchShifter
-*/
-
-   for (let i=0; i < this.inputAudio.length; i++){
+    for (let i=0; i < this.inputAudio.length; i++){
       const source = context.createBufferSource();
-      source.buffer = this.inputAudio[i].data;
+      source.buffer = this.addZeros(context,this.inputAudio[i].data);
         this.inputAudio[i].source = source;
       const gainNode = context.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
         this.inputAudio[i].gainNode = gainNode;
-      source.connect(shifter);
-      // gainNode.connect(shifter);
-   }
+        source.connect(gainNode);
+        gainNode.connect(shifter);
+    }
 
-   shifter.connect(context.destination);
+    shifter.connect(context.destination);
+    const startedAt = context.currentTime + delay;
+    for (let i=0; i < this.inputAudio.length; i++){
+      // this.inputAudio[i].source.start(startedAt, timeA, timeB - timeA);
+      this.inputAudio[i].source.start(startedAt, timeA);
+    }
 
-   const startedAt = context.currentTime + delay;
-   for (let i=0; i < this.inputAudio.length; i++){
-      this.inputAudio[i].source.start(startedAt, timeA, timeB - timeA);
-   }
+    this.inputAudio[0].source.onended = function(e) {
+      console.log('source 0', e);
+    }
 
-   this.inputAudio[0].source.onended = function (e) { 
-     console.log('source 0 end');
+   shifter.onUpdate = function(val) { 
+     // console.log ('PlayingAt', val);
+     this.setState({playingAt: val});
+   }.bind(this);
+
+   shifter.onEnd = function() {
+     console.log('shifter onEnd');
+     for (let i=0; i < this.inputAudio.length; i++)
+       this.inputAudio[i].gainNode.disconnect();
+
      this.setState({isPlaying: false, startButtonStr: 'Play'});
-   }.bind(this)
+   }.bind(this);
 
   } // END playABWorklet
 
@@ -828,6 +839,23 @@ class App extends Component {
       return false;
     }
 
+  }
+
+  addZeros(context,input){ // return zero padded double length AudioBuffer
+    console.log('addZeros');
+    const output = context.createBuffer(
+      input.numberOfChannels, 
+      input.length*2 + 30*input.sampleRate, 
+      input.sampleRate
+    ); // additional 30 sec
+
+    for (let ch = 0; ch < output.numberOfChannels; ch++){
+      const inSamples = input.getChannelData(ch);
+      const outSamples = output.getChannelData(ch);
+      outSamples.set(inSamples);
+    }
+
+    return output;
   }
 
 }; // end class

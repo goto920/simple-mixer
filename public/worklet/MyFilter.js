@@ -18,7 +18,9 @@
 
  */
 
-import { SimpleFilter } from './soundtouch'; 
+import { SimpleFilter } from './soundtouch-modified'; 
+// soundtouch.js (last line modified)
+// is directly imported from the current directory.
 
 const noop = function () {return;}
 

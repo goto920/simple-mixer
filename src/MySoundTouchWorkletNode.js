@@ -5,7 +5,7 @@ class MySoundTouchWorkletNode extends AudioWorkletNode {
     super(context, workletName, options);
 
     // this.context = context;
-    this.port.onmessage = this.messageProcessor;
+    this.port.onmessage = this.messageProcessor.bind(this);
     this._onUpdate = noop;
     this._onEnd = noop;
 
@@ -29,11 +29,22 @@ class MySoundTouchWorkletNode extends AudioWorkletNode {
     return this.pitch;
   }
 
+  stop(){
+    this.disconnect();
+    this._onEnd();
+  }
+
   messageProcessor(e){
-    if(e.command){
-      switch(e.command) {
-        case 'End': this.onEnd(); break;
-        case 'update' : this.onUpdate(); break;
+    // console.log('Node Recvd', e);
+    if(e.data.command){
+      switch(e.data.command) {
+        case 'End': 
+          this.stop();
+        break;
+        case 'update' : 
+          // this.playingAt = e.data.args[0];
+          this._onUpdate(e.data.args[0]); 
+        break;
         default:
       }
       return;
