@@ -18,7 +18,7 @@
 
  */
 
-import { SimpleFilter } from './soundtouch.js'; 
+import { SimpleFilter } from './soundtouch'; 
 
 const noop = function () {return;}
 

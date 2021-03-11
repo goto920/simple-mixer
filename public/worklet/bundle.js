@@ -1,106 +1,4 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-module.exports = audioBufferToWav
-function audioBufferToWav (buffer, opt) {
-  opt = opt || {}
-
-  var numChannels = buffer.numberOfChannels
-  var sampleRate = buffer.sampleRate
-  var format = opt.float32 ? 3 : 1
-  var bitDepth = format === 3 ? 32 : 16
-
-  var result
-  if (numChannels === 2) {
-    result = interleave(buffer.getChannelData(0), buffer.getChannelData(1))
-  } else {
-    result = buffer.getChannelData(0)
-  }
-
-  return encodeWAV(result, format, sampleRate, numChannels, bitDepth)
-}
-
-function encodeWAV (samples, format, sampleRate, numChannels, bitDepth) {
-  var bytesPerSample = bitDepth / 8
-  var blockAlign = numChannels * bytesPerSample
-
-  var buffer = new ArrayBuffer(44 + samples.length * bytesPerSample)
-  var view = new DataView(buffer)
-
-  /* RIFF identifier */
-  writeString(view, 0, 'RIFF')
-  /* RIFF chunk length */
-  view.setUint32(4, 36 + samples.length * bytesPerSample, true)
-  /* RIFF type */
-  writeString(view, 8, 'WAVE')
-  /* format chunk identifier */
-  writeString(view, 12, 'fmt ')
-  /* format chunk length */
-  view.setUint32(16, 16, true)
-  /* sample format (raw) */
-  view.setUint16(20, format, true)
-  /* channel count */
-  view.setUint16(22, numChannels, true)
-  /* sample rate */
-  view.setUint32(24, sampleRate, true)
-  /* byte rate (sample rate * block align) */
-  view.setUint32(28, sampleRate * blockAlign, true)
-  /* block align (channel count * bytes per sample) */
-  view.setUint16(32, blockAlign, true)
-  /* bits per sample */
-  view.setUint16(34, bitDepth, true)
-  /* data chunk identifier */
-  writeString(view, 36, 'data')
-  /* data chunk length */
-  view.setUint32(40, samples.length * bytesPerSample, true)
-  if (format === 1) { // Raw PCM
-    floatTo16BitPCM(view, 44, samples)
-  } else {
-    writeFloat32(view, 44, samples)
-  }
-
-  return buffer
-}
-
-function interleave (inputL, inputR) {
-  var length = inputL.length + inputR.length
-  var result = new Float32Array(length)
-
-  var index = 0
-  var inputIndex = 0
-
-  while (index < length) {
-    result[index++] = inputL[inputIndex]
-    result[index++] = inputR[inputIndex]
-    inputIndex++
-  }
-  return result
-}
-
-function writeFloat32 (output, offset, input) {
-  for (var i = 0; i < input.length; i++, offset += 4) {
-    output.setFloat32(offset, input[i], true)
-  }
-}
-
-function floatTo16BitPCM (output, offset, input) {
-  for (var i = 0; i < input.length; i++, offset += 2) {
-    var s = Math.max(-1, Math.min(1, input[i]))
-    output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true)
-  }
-}
-
-function writeString (view, offset, string) {
-  for (var i = 0; i < string.length; i++) {
-    view.setUint8(offset + i, string.charCodeAt(i))
-  }
-}
-
-},{}],2:[function(require,module,exports){
-(function (global){(function (){
-(function(a,b){if("function"==typeof define&&define.amd)define([],b);else if("undefined"!=typeof exports)b();else{b(),a.FileSaver={exports:{}}.exports}})(this,function(){"use strict";function b(a,b){return"undefined"==typeof b?b={autoBom:!1}:"object"!=typeof b&&(console.warn("Deprecated: Expected third argument to be a object"),b={autoBom:!b}),b.autoBom&&/^\s*(?:text\/\S*|application\/xml|\S*\/\S*\+xml)\s*;.*charset\s*=\s*utf-8/i.test(a.type)?new Blob(["\uFEFF",a],{type:a.type}):a}function c(a,b,c){var d=new XMLHttpRequest;d.open("GET",a),d.responseType="blob",d.onload=function(){g(d.response,b,c)},d.onerror=function(){console.error("could not download file")},d.send()}function d(a){var b=new XMLHttpRequest;b.open("HEAD",a,!1);try{b.send()}catch(a){}return 200<=b.status&&299>=b.status}function e(a){try{a.dispatchEvent(new MouseEvent("click"))}catch(c){var b=document.createEvent("MouseEvents");b.initMouseEvent("click",!0,!0,window,0,0,0,80,20,!1,!1,!1,!1,0,null),a.dispatchEvent(b)}}var f="object"==typeof window&&window.window===window?window:"object"==typeof self&&self.self===self?self:"object"==typeof global&&global.global===global?global:void 0,a=f.navigator&&/Macintosh/.test(navigator.userAgent)&&/AppleWebKit/.test(navigator.userAgent)&&!/Safari/.test(navigator.userAgent),g=f.saveAs||("object"!=typeof window||window!==f?function(){}:"download"in HTMLAnchorElement.prototype&&!a?function(b,g,h){var i=f.URL||f.webkitURL,j=document.createElement("a");g=g||b.name||"download",j.download=g,j.rel="noopener","string"==typeof b?(j.href=b,j.origin===location.origin?e(j):d(j.href)?c(b,g,h):e(j,j.target="_blank")):(j.href=i.createObjectURL(b),setTimeout(function(){i.revokeObjectURL(j.href)},4E4),setTimeout(function(){e(j)},0))}:"msSaveOrOpenBlob"in navigator?function(f,g,h){if(g=g||f.name||"download","string"!=typeof f)navigator.msSaveOrOpenBlob(b(f,h),g);else if(d(f))c(f,g,h);else{var i=document.createElement("a");i.href=f,i.target="_blank",setTimeout(function(){e(i)})}}:function(b,d,e,g){if(g=g||open("","_blank"),g&&(g.document.title=g.document.body.innerText="downloading..."),"string"==typeof b)return c(b,d,e);var h="application/octet-stream"===b.type,i=/constructor/i.test(f.HTMLElement)||f.safari,j=/CriOS\/[\d]+/.test(navigator.userAgent);if((j||h&&i||a)&&"undefined"!=typeof FileReader){var k=new FileReader;k.onloadend=function(){var a=k.result;a=j?a:a.replace(/^data:[^;]*;/,"data:attachment/file;"),g?g.location.href=a:location=a,g=null},k.readAsDataURL(b)}else{var l=f.URL||f.webkitURL,m=l.createObjectURL(b);g?g.location=m:location.href=m,g=null,setTimeout(function(){l.revokeObjectURL(m)},4E4)}});f.saveAs=g.saveAs=g,"undefined"!=typeof module&&(module.exports=g)});
-
-
-}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],3:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -108,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _soundtouch = require("./soundtouch.js");
+var _soundtouch = require("./soundtouch");
 
 /*
    Written by goto at kmgoto.jp (Mar. 2021)
@@ -186,186 +84,185 @@ class MyFilter extends _soundtouch.SimpleFilter {
 exports.default = MyFilter;
 ;
 
-},{"./soundtouch.js":5}],4:[function(require,module,exports){
+},{"./soundtouch":3}],2:[function(require,module,exports){
 "use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-
-var _soundtouch = require("./soundtouch.js");
 
 var _MyFilter = _interopRequireDefault(require("./MyFilter"));
 
-var _fileSaver = require("file-saver");
-
-var toWav = _interopRequireWildcard(require("audiobuffer-to-wav"));
-
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+var _soundtouch = require("./soundtouch");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /*
-   Written by goto at kmgoto.jp (Mar. 2021)
-   Copyright of my code is not claimed.
 
-   Based on soundtouchjs/src/PitchShifter.js, SimpleFilter.js
+  npm install -g browserify
+  npm install esmify --save-dev
+  npm install browser-resolve --save-dev
 
-   Modified for use as intermediate ScriptProcessorNode.
-   Note: Output does not work for OfflineAudioContext.
+  Copy every file here and fix import lines 
+  (export line of node_modules/soundtouchjs/dist/soundtouch.js )
 
-   1) PitchShifter ---> MyPitchShifter (minimum code)
-                     includes ScriptProcessorNode
+  browserify this-file.js -p esmify > bundle.js
 
-   2) MyFilter extends SimpleFilter
+  To be loaded by 
+   audioCtx.audioWorklet.loadModule('worklet/bundle.js)
+   You can use any output file name. 
+   In case of React, the path is relative to public/.
 
-   Pitch modification and slow down/speed up work.
-   Slow down only for real-time playback.
-   fast playback is impossible by nature.
+  Note: soundtouch.js is directly imported since the last line 
+    needs to be modified to create "bundle.js".
+
+    // export { AbstractFifoSamplePipe, ....
+    module.exports = { AbstractFifosamplePipe, ....
 
  */
 const noop = function () {
   return;
 };
 
-class MyPitchShifter {
-  constructor(context, numOfInputFrames, bufferSize, record = false, bypass = false) {
-    console.log('new MyPitchShifter instance');
-    this.context = context;
-    this.bufferSize = bufferSize;
-    this.record = record;
-    this.bypass = bypass;
-    this.recordedSamples = [[], []];
+class MySoundTouchProcessor extends AudioWorkletProcessor {
+  constructor(options) {
+    super(); //    super(options);
+
+    console.log('worklet', options);
+    /*
+        this.bypass = options.processorOptions.bypass;
+        this.recording = options.processorOptions.recording;
+        this.InputFrames = options.processorOptions.nInputFrames;
+        this.processedAudioBuffer = options.processorOptions.processedAudioBuffer;
+        this.updateInterval = options.processorOptions.updateInterval;
+        this.sampleRate = options.processorOptions.sampleRate;
+    */
+
+    this.options = options.processorOptions;
+    console.log('this.options', this.options);
+    this.nOutputFrames = 0;
+    this.nVirtualOutputFrames = 0;
+    this.nInputFrames = 0;
+    this.playingAt = 0;
     this.lastPlayingAt = 0;
-    this._soundtouch = new _soundtouch.SoundTouch.SoundTouch();
-    this._filter = new _MyFilter.default(this._soundtouch, noop);
-    this._onEnd = noop;
-    this._onUpdate = noop;
-    this._onUpdateInterval = 0.5;
-    this._node = context.createScriptProcessor(bufferSize, 2, 2);
-    this._node.onaudioprocess = this.onaudioprocess.bind(this);
-    this._totalInputFrames = numOfInputFrames;
-    this._recordedBuffer = null;
-    this._nVirtualOutputFrames = 0;
-    this._playingAt = 0;
-    this.outSamples = new Float32Array(bufferSize * 2);
-    this.inSamples = new Float32Array(bufferSize * 2);
-    this.sampleRate = context.sampleRate;
-    this.nInputFrames = 0; // this.moreInput = true;
-  }
+    this.tempo = 1.0;
+    this.pitch = 0.0;
+    this.soundtouch = new _soundtouch.SoundTouch();
+    this.soundtouch.tempo = this.tempo;
+    this.soundtouch.pitch = this.pitch;
+    this.filter = new _MyFilter.default(this.soundtouch, noop);
+    this.recordedSamples = [[], []];
+    this.inSamples = new Float32Array(128 * 2);
+    this.outSamples = new Float32Array(128 * 2);
+    this.port.onmessage = this.messageProcessor.bind(this); // this.process = this.process.bind(this);
+    // this.passThrough = this.passThrough.bind(this);
+  } // end constructor
 
-  set totalInputFrames(nframes) {
-    this._totalInputFrames = nframes;
-  }
 
-  get totalInputFrames() {
-    return this._totalInputFrames;
-  }
+  messageProcessor(event) {
+    if (command) {
+      const command = event.command;
 
-  get totalVirtualOutputFrames() {
-    return this._nVirtualOutputFrames;
-  }
+      switch (command) {
+        case 'setTempo':
+          this.soundtouch.tempo = event.args[0];
+          this.port.postMessage({
+            status: 'OK',
+            args: ['setTempo', this.soundtouch.tempo]
+          });
+          break;
 
-  get playingAt() {
-    return this._playingAt;
-  }
+        case 'getTempo':
+          this.port.postMessage({
+            status: 'OK',
+            args: ['getTempo', this.soundtouch.tempo]
+          });
+          break;
 
-  get node() {
-    return this._node;
-  }
+        case 'setPitch':
+          this.soundtouch.pitch = event.args[0];
+          this.port.postMessage({
+            status: 'OK',
+            args: ['setPitch', this.soundtouch.pitch]
+          });
+          break;
 
-  set tempo(tempo) {
-    this._soundtouch.tempo = tempo;
-  }
+        case 'getPitch':
+          this.port.postMessage({
+            status: 'OK',
+            args: ['getPitch', this.soundtouch.pitch]
+          });
+          break;
 
-  get tempo() {
-    return this._soundtouch.tempo;
-  }
+        case 'setUpdateInterval':
+          this.options.updateInterval = event.args[0];
+          this.port.postMessage({
+            status: 'OK',
+            args: ['getPitch', this.options.updateInterval]
+          });
+          break;
 
-  set pitch(pitch) {
-    this._soundtouch.pitch = pitch;
-  }
+        default:
+      } // end switch
 
-  get rate() {
-    return this._soundtouch.rate;
-  }
+    } // end if (command)
 
-  get recordedBuffer() {
-    if (this._recordedBuffer === null) this.createProcessedBuffer();
-    return this._recordedBuffer;
-  }
+  } // end messageProcessor()
 
-  set onEnd(func) {
-    this._onEnd = func;
-  }
-
-  set onUpdate(func) {
-    this._onUpdate = func;
-  }
-
-  set onUpdateInterval(val) {
-    this._onUpdateInterval = val;
-  }
-
-  get onUpdateInterval() {
-    return this._onUpdateInterval;
-  }
 
   stop() {
-    if (this._node.onaudioprocess) {
-      console.log('shifter stop');
-      this._node.onaudioprocess = null;
-
-      this._node.disconnect();
-
-      this._onEnd();
-    }
+    this.createProcessedBuffer();
+    this.port.postMessage({
+      command: 'End',
+      args: []
+    });
   }
 
-  createProcessedBuffer() {
-    if (!this.record) return;
-    const outputBuffer = this.context.createBuffer(this.recordedSamples.length, // channels
-    this.recordedSamples[0].length, // sample length
-    this.sampleRate);
-    const left = outputBuffer.getChannelData(0);
-    const right = outputBuffer.getChannelData(1);
-    left.set(this.recordedSamples[0]);
-    right.set(this.recordedSamples[1]); // Typedarray.set(array[, offset])
+  updatePlayingAt() {
+    this.port.postMessage({
+      command: 'update',
+      args: [this.playingAt]
+    });
+  }
 
-    this._recordedBuffer = outputBuffer; // console.log('this._recordedBuffer len = ', this._recordedBuffer.length);
-  } // end createProcessedBuffer()
-
-
-  onaudioprocess(e) {
-    if (this.bypass) {
+  process(inputs, outputs, parameters) {
+    // console.log('worklet process called');
+    if (this.options.bypass) {
       // pass through for test
-      if (this._nVirtualOutputFrames <= this._totalInputFrames) {
-        this.passThrough(e.inputBuffer, e.outputBuffer); // through for test
+      if (this.nVirtualOutputFrames <= this.nInputFrames) {
+        this.passThrough(inputs[0], outputs[0]); // through for test
 
-        this._nVirtualOutputFrames += e.outputBuffer.length;
+        this.nVirtualOutputFrames += outputs[0].length;
       } else this.stop();
     } else {
-      if (this._nVirtualOutputFrames <= this._totalInputFrames) {
-        const nOutputFrames = this.process(e.inputBuffer, e.outputBuffer);
-        this._nVirtualOutputFrames += nOutputFrames * this._soundtouch.tempo;
+      if (this.nVirtualOutputFrames <= this.nInputFrames) {
+        const nOutputFrames = this.processFilter(inputs[0], outputs[0]);
+        this.nVirtualOutputFrames += nOutputFrames * this.soundtouch.tempo;
       } else this.stop();
     }
 
-    this._playingAt = this._nVirtualOutputFrames / this.sampleRate;
+    this.playingAt = this.nVirtualOutputFrames / this.options.sampleRate;
 
-    if (this.playingAt - this.lastPlayingAt >= this._onUpdateInterval) {
-      this._onUpdate();
-
-      this.lastPlayingAt = this._playingAt;
+    if (this.playingAt - this.lastPlayingAt >= this.onUpdateInterval) {
+      this.updatePlayintAt();
+      this.lastPlayingAt = this.playingAt;
     }
 
-    this.nInputFrames += e.inputBuffer.length;
-  }
+    this.nInputFrames += inputs[0].length;
+  } // end process()
 
-  process(inputBuffer, outputBuffer) {
+
+  passThrough(inputBuffer, outputBuffer) {
+    // input is just left, right array of 128 frames
+    // console.log('passThrough', inputBuffer[0].length)
+    const nc = outputBuffer.length; // channel
+
+    for (let channel = 0; channel < nc; channel++) {
+      const input = inputBuffer[channel];
+      const output = outputBuffer[channel];
+      output.set(input);
+      if (this.recording) for (let i = 0; i < output.length; i++) this.recordedSamples[channel].push(input[i]);
+    }
+  } // End passThrough()
+
+
+  processFilter(inputBuffer, outputBuffer) {
     // using soundtouchjs 
     // input part
     const leftIn = inputBuffer.getChannelData(0);
@@ -380,19 +277,16 @@ class MyPitchShifter {
       inSamples[2 * i + 1] = rightIn[i];
     }
 
-    this._filter.putSource(inSamples); // Output  node.onaudioprocess in function getWebAudioNode
+    this.filter.putSource(inSamples); // Output  node.onaudioprocess in function getWebAudioNode
     // context, filter, sourcePositionCallback
 
-
-    const outSamples = this.outSamples;
-
-    const framesExtracted = this._filter.extract(outSamples, this.bufferSize);
+    const framesExtracted = this.filter.extract(this.outSamples, this.bufferSize);
 
     for (let i = 0; i < framesExtracted; i++) {
-      left[i] = outSamples[i * 2];
-      right[i] = outSamples[i * 2 + 1];
+      left[i] = this.outSamples[i * 2];
+      right[i] = this.outSamples[i * 2 + 1];
 
-      if (this.record) {
+      if (this.recording) {
         this.recordedSamples[0].push(left[i]);
         this.recordedSamples[1].push(right[i]);
       }
@@ -400,39 +294,29 @@ class MyPitchShifter {
 
     return framesExtracted;
   } // End process
-  // just copy inputBuffer to outputBuffer for test 
 
 
-  passThrough(inputBuffer, outputBuffer) {
-    const nc = outputBuffer.numberOfChannels;
-
-    for (let channel = 0; channel < nc; channel++) {
-      const input = inputBuffer.getChannelData(channel);
-      const output = outputBuffer.getChannelData(channel);
-      output.set(inputBuffer.getChannelData(channel));
-      if (this.record) for (let i = 0; i < outputBuffer.length; i++) this.recordedSamples[channel].push(input[i]);
-    }
-  } // End pathThrough()
-
-
-  exportToFile(filename) {
+  createProcessedBuffer() {
     if (!this.record) return;
-    console.log('exportToFile: ', filename, 'length: ', this.recordedSamples[0].length);
-    if (this._recordedBuffer === null) this.createProcessedBuffer();
-    const blob = new Blob([toWav(this._recordedBuffer)], {
-      type: 'audio/vnd.wav'
-    });
-    (0, _fileSaver.saveAs)(blob, filename);
-    return;
-  } // end exportToFile()
+    const outputBuffer = this.context.createBuffer(this.recordedSamples.length, // channels
+    this.recordedSamples[0].length, // sample length
+    this.options.ampleRate);
+    const left = outputBuffer.getChannelData(0);
+    const right = outputBuffer.getChannelData(1);
+    left.set(this.recordedSamples[0]);
+    right.set(this.recordedSamples[1]); // Typedarray.set(array[, offset])
+
+    this.recordedBuffer = outputBuffer; // Audio buffer returned as the argument
+    // console.log('this._recordedBuffer len = ', this._recordedBuffer.length);
+  } // end createProcessedBuffer()
 
 
 }
 
-exports.default = MyPitchShifter;
 ;
+registerProcessor('my-soundtouch-processor', MySoundTouchProcessor);
 
-},{"./MyFilter":3,"./soundtouch.js":5,"audiobuffer-to-wav":1,"file-saver":2}],5:[function(require,module,exports){
+},{"./MyFilter":1,"./soundtouch":3}],3:[function(require,module,exports){
 "use strict";
 
 /*
@@ -1410,4 +1294,4 @@ module.exports = {
   getWebAudioNode
 };
 
-},{}]},{},[4]);
+},{}]},{},[2]);

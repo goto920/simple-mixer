@@ -21,6 +21,8 @@
 import React, { Component }  from 'react';
 import './App.css';
 import MyPitchShifter from './MyPitchShifter'; // soundtouchJS
+import MySoundTouchWorkletNode from './MySoundTouchWorkletNode';
+
 import packageJSON from '../package.json';
 import messages from './messages.json'; // English/Japanese messages
 
@@ -44,6 +46,7 @@ const version = packageJSON.subversion;
 
 let defaultLang = 'en';
 let m = messages.en;
+console.log(window.navigator.language);
 if (window.navigator.language.slice(0,2) === 'ja') {
   defaultLang = 'ja'; 
   m = messages.ja;
@@ -60,14 +63,25 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
 window.OfflineAudioContext = window.OfflineAudioContext 
  || window.webkitOfflineAudioContext;
 
+let audioWorkletAvailable = false;
+let context = new OfflineAudioContext(1, 1, 44100);
+if (context.audioWorklet && 
+    typeof context.audioWorklet.addModule === 'function'){
+    audioWorkletAvailable = true;
+}
+
+if (audioWorkletAvailable) console.log('Audio Worklet is available');
+  else console.log('Audio Worklet is NOT available');
 
 class App extends Component {
+
   constructor (props) {
     super();
-    this.audioCtx = new AudioContext();
+    this.audioCtx = new AudioContext(); // Online AudioContext
     this.inputAudio = [];
     this.mixedSource = null;
     this.masterGainNode = null;
+    this.sliders = [];
  
     this.state = {
       language: defaultLang,
@@ -92,6 +106,7 @@ class App extends Component {
     this.handleGainSlider = this.handleGainSlider.bind(this);
     this.handleTimeSlider = this.handleTimeSlider.bind(this);
     this.playAB = this.playAB.bind(this);
+    this.playABWorklet = this.playABWorklet.bind(this);
     this.switchLanguage = this.switchLanguage.bind(this);
   }   
 
@@ -137,23 +152,25 @@ class App extends Component {
        return (<span>{icon}</span>);
     };
 
-    this.inputAudio.sort((a,b) => a.name - b.name);
 
-    let sliders = '';
-    if (this.state.gains.length > 0) {
-       sliders = this.state.gains.map((value, index) => {
+  //  this.inputAudio.sort((a,b) => a.name - b.name);
+
+/*
+    if (this.state.gains.length > 0 ) {
+      this.sliders = this.state.gains.map((value, index) => {
         return (
         <div className='slider' key={index}>
         <center>
         {this.inputAudio[index].name} ({this.state.gains[index]})<br />
         0 <input type='range' id={index} name='gainSlider' 
-        min='0' max='100' value={this.state.gains[index]} 
+        min='0' max='100' value={this.state.gains[index]}
         onChange={this.handleGainSlider} /> 100
         </center>
         </div>
         );
       });
     }
+*/
 
     const EffectControls = () => {
      return (
@@ -216,7 +233,7 @@ class App extends Component {
      <Tooltip title={m.clearFiles}>
      <button name='clearFile' onClick = {() => {
        this.setState({gains: [], startButtonStr: 'load files first!'});
-       this.inputAudio = [];} } >{m.clearButton}</button></Tooltip></span>
+       this.inputAudio = []; this.sliders = [];} } >{m.clearButton}</button></Tooltip></span>
      <br />
      </span><br/>
      <div className='text-divider'>{m.timeTitle}&nbsp;
@@ -315,8 +332,62 @@ class App extends Component {
            onChange={this.handleGainSlider} /> 150
        </center>
      </div>
+
      <div className='text-divider'>{m.trackGainTitle}</div>
-     {sliders}
+       {this.inputAudio.length > 0 ? 
+       <div className='slider' key={0}>
+       <center>
+       {this.inputAudio[0].name} ({this.state.gains[0]})<br />
+        0 <input type='range' id={0} name='gainSlider' 
+        min='0' max='100' value={this.state.gains[0]}
+        onChange={this.handleGainSlider} /> 100
+      </center></div> : <div></div>}
+
+       {this.inputAudio.length > 1 ? 
+       <div className='slider' key={1}>
+       <center>
+       {this.inputAudio[1].name} ({this.state.gains[1]})<br />
+        0 <input type='range' id={1} name='gainSlider' 
+        min='0' max='100' value={this.state.gains[1]}
+        onChange={this.handleGainSlider} /> 100
+      </center></div> : <div></div>}
+
+       {this.inputAudio.length > 2 ? 
+       <div className='slider' key={2}>
+       <center>
+       {this.inputAudio[2].name} ({this.state.gains[2]})<br />
+        0 <input type='range' id={2} name='gainSlider' 
+        min='0' max='100' value={this.state.gains[2]}
+        onChange={this.handleGainSlider} /> 100
+      </center></div> : <div></div>}
+
+       {this.inputAudio.length > 3 ? 
+       <div className='slider' key={3}>
+       <center>
+       {this.inputAudio[3].name} ({this.state.gains[3]})<br />
+        0 <input type='range' id={3} name='gainSlider' 
+        min='0' max='100' value={this.state.gains[3]}
+        onChange={this.handleGainSlider} /> 100
+      </center></div> : <div></div>}
+
+       {this.inputAudio.length > 4 ? 
+       <div className='slider' key={4}>
+       <center>
+       {this.inputAudio[4].name} ({this.state.gains[4]})<br />
+        0 <input type='range' id={4} name='gainSlider' 
+        min='0' max='100' value={this.state.gains[4]}
+        onChange={this.handleGainSlider} /> 100
+      </center></div> : <div></div>}
+
+       {this.inputAudio.length > 5 ? 
+       <div className='slider' key={5}>
+       <center>
+       {this.inputAudio[5].name} ({this.state.gains[5]})<br />
+        0 <input type='range' id={5} name='gainSlider' 
+        min='0' max='100' value={this.state.gains[5]}
+        onChange={this.handleGainSlider} /> 100
+      </center></div> : <div></div>}
+
      <hr />
      {m.version}: {version} &nbsp;&nbsp;
      <a href={m.url}
@@ -337,6 +408,8 @@ class App extends Component {
 
     if (this.audioCtx === null) this.audioCtx = new window.AudioContext();
 
+    this.loadModule(this.audioCtx);
+
     for (let i=0; i < files.length; i++){
       const reader = new FileReader();
 
@@ -356,6 +429,7 @@ class App extends Component {
           
            // const gains = [...this.state.gains, 100];
            const gains = this.state.gains; gains.push(100);
+
            this.setState({
              startButtonStr: 'Play',
                timeA: 0,
@@ -364,8 +438,8 @@ class App extends Component {
                gains: gains,
            });
 
+          }.bind(this),
 
-         }.bind(this),
          function (error) { console.log ("decode error: " + error.err) }
        )
 
@@ -381,8 +455,9 @@ class App extends Component {
   playAB(delay, timeA, timeB, recording = false, 
        offline = false, exporter='none'){
 
-    console.log('playAB', 'delay, timeA, timeB, offline, recording, exporter = ', 
-    delay, timeA, timeB, offline, recording, exporter);
+    console.log('playAB', 
+      'delay, timeA, timeB, recording, offline, exporter =', 
+      delay, timeA, timeB, recording, offline, exporter);
 
     if (this.state.isPlaying) return;
     if (this.audioCtx.state === 'suspended' ) this.audioCtx.resume();
@@ -497,7 +572,7 @@ class App extends Component {
       });
 
       if (!offline && this.state.loop) 
-             this.playAB(2, this.state.timeA, this.state.timeB);
+           this.playAB(2, this.state.timeA, this.state.timeB);
         else this.setState({ startButtonStr: 'Pause' });
 
     }.bind(this);
@@ -557,7 +632,10 @@ class App extends Component {
         case 'Play':
           console.log('Play');
           if (this.inputAudio.length === 0) break;
-          this.playAB (0, this.state.timeA, this.state.timeB);
+          if (audioWorkletAvailable)
+            this.playABWorklet (0, this.state.timeA, this.state.timeB);
+          else this.playAB (0, this.state.timeA, this.state.timeB);
+
           this.setState ({startButtonStr: 'Pause'})
         break;
 
@@ -597,7 +675,7 @@ class App extends Component {
 
   handleGainSlider(event){
     if (event.target.name !== 'gainSlider') return;
-    // console.log ('slider id= ', event.target.id);
+//       console.log ('slider id= ', event.target.id);
 // 
     if (event.target.id === 'master'){
       this.setState({masterGain: parseFloat(event.target.value)});
@@ -667,6 +745,89 @@ class App extends Component {
       m = messages.ja; 
       this.setState({language: 'ja'});
     }
+  } // End switchLanguage()
+
+/* Experimental */
+
+  playABWorklet(delay, timeA, timeB, recording = false, 
+       offline = false, exporter='none'){
+
+    console.log('playABWorklet', 
+       'delay, timeA, timeB, recording, offline, exporter = ', 
+       delay, timeA, timeB, recording, offline, exporter);
+
+    if (this.state.isPlaying) return;
+    if (this.audioCtx.state === 'suspended' ) this.audioCtx.resume();
+
+    const sampleRate = this.inputAudio[0].data.sampleRate;
+    const channels = this.inputAudio[0].data.numberOfChannels;
+    const nInputFrames = (timeB - timeA)*sampleRate;
+    const nOutputFrames = Math.max(nInputFrames, 
+                      nInputFrames/this.state.playSpeed);
+  
+    let context = this.audioCtx;
+    this.setState({isPlaying : true});
+
+    const options = {
+      processorOptions: {
+        bypass: true, recording: false,
+        nInputFrames: nInputFrames, processedAudioBuffer: [],
+        updateInterval: 1.0, sampleRate: sampleRate
+      },
+    };
+
+    const shifter = new MySoundTouchWorkletNode(
+      context,
+      'my-soundtouch-processor',  // registered name in the worklet file
+      options // options to the AudioWorkletProcessor
+    );
+
+    this.shifter = shifter;
+
+/*
+    shifter.tempo = this.state.playSpeed;
+    shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
+
+    shifter.onEnd = function () { // callback from MyPitchShifter
+*/
+
+   for (let i=0; i < this.inputAudio.length; i++){
+      const source = context.createBufferSource();
+      source.buffer = this.inputAudio[i].data;
+        this.inputAudio[i].source = source;
+      const gainNode = context.createGain();
+        gainNode.gain.value = this.state.gains[i]/100.0;
+        this.inputAudio[i].gainNode = gainNode;
+      source.connect(shifter);
+      // gainNode.connect(shifter);
+   }
+
+   shifter.connect(context.destination);
+
+   const startedAt = context.currentTime + delay;
+   for (let i=0; i < this.inputAudio.length; i++){
+      this.inputAudio[i].source.start(startedAt, timeA, timeB - timeA);
+   }
+
+   this.inputAudio[0].source.onended = function (e) { 
+     console.log('source 0 end');
+     this.setState({isPlaying: false, startButtonStr: 'Play'});
+   }.bind(this)
+
+  } // END playABWorklet
+
+  async loadModule (context){
+    if (!context) return false;
+
+    try {
+      await context.audioWorklet.addModule('worklet/bundle.js');
+      // relative path from public (React)
+      return true;
+    } catch(e) {
+      console.log(e + '\n audioWorklet load failed'); 
+      return false;
+    }
+
   }
 
 }; // end class
