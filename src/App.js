@@ -587,6 +587,7 @@ class App extends Component {
       const recording = true;
       let offline = true; 
       if (iOS) { offline = false; }
+      offline = false;
       this.playAB (0, this.state.timeA, this.state.timeB, 
           recording, offline, event.target.name);
 

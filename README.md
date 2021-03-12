@@ -10,9 +10,9 @@ but is not limited (speed > 0) for export (or playback after processing).
 
 Written with React and Web Audio API.
 
-## input audio files (wav, mp3, or whatever the browser supports)
+## input audio file(s) (wav, mp3, or whatever the browser supports)
 
-Select multiple flles (5stem example)
+Select one or more STEREO audio flle(s) (5stem example)
 
 `
 bass.wav, drums.wav, other.wav, piano.wav, vocals.wav
