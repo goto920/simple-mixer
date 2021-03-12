@@ -48,6 +48,7 @@ import MyPitchShifter from './MyPitchShifter';
 const context = new AudioContext();
 const source = context.createBufferSource();
 source.buffer = audioBuffer; // audioBuffer is the data to play 
+// add silence(zeros) for slow playback 
 
 const nInputFrames = audioBuffer.length*audioBuffer.sampleRate;
 const bufsize = 4096; // 4096 or larger
@@ -114,7 +115,8 @@ const nInputFrames = audioBuffer.length*audioBuffer.sampleRate;
 const nOutputFrames = Math.max(nInputFrames, nInputFrames/tempo);
 context = new OfflineAudioContext (
     channels, nOutputFrames + 1.0*sampleRate, sampleRate);
-   // length in frames (add 1 sec)
+// nOutputFrames is the expected length in frames (add 1 sec)
+// Double the length of input audio for 50% playback
 
 const bufsize = 4096; // 4096 or larger
 const recording = true; 
