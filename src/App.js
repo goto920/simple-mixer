@@ -39,6 +39,7 @@ import RemoveIcon from '@material-ui/icons/Remove';
 import PlayCircleFilledWhiteIcon 
    from '@material-ui/icons/PlayCircleFilledWhite';
 import NotInterestedIcon from '@material-ui/icons/NotInterested';
+import MoodIcon from '@material-ui/icons/Mood';
 
 // get subversion string 
 const version = packageJSON.subversion;
@@ -63,14 +64,15 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
 window.OfflineAudioContext = window.OfflineAudioContext 
  || window.webkitOfflineAudioContext;
 
-let audioWorkletAvailable = false;
+let tmp = false;
 let context = new OfflineAudioContext(1, 1, 44100);
 if (context.audioWorklet && 
     typeof context.audioWorklet.addModule === 'function'){
-    audioWorkletAvailable = true;
+    tmp = true;
 }
+const isAudioWorklet = tmp;
 
-if (audioWorkletAvailable) console.log('Audio Worklet is available');
+if (isAudioWorklet) console.log('Audio Worklet is available');
   else console.log('Audio Worklet is NOT available');
 
 class App extends Component {
@@ -97,6 +99,7 @@ class App extends Component {
       playSpeed: 1.0,
       playPitch: 0.0,
       bypass: false,
+      useAudioWorklet: isAudioWorklet,
     };
 
     this.shifter = null;
@@ -117,110 +120,30 @@ class App extends Component {
 
   render(){
 
-    const PlayButton = () => {
-       let icon;
-       switch(this.state.startButtonStr){
-         case 'load files first!':
-           icon = 
-             <Tooltip title={m.alert}>
-             <span><IconButton
-             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PlayCircleOutlineIcon color='disabled'/>
-             </IconButton></span></Tooltip>;
-         break;
-         case 'Play': 
-           icon = <Tooltip title={m.playButton}><IconButton  
-             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PlayCircleOutlineIcon color='primary' />
-             </IconButton></Tooltip>;
-         break;
-         case 'Resume':
-           icon = <IconButton  
-             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PlayCircleOutlineIcon style={{color: '#00aa00' }} />
-             </IconButton>;
-         break;
-         case 'Pause': 
-           icon = <IconButton  
-             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PauseCircleOutlineOutlinedIcon color='primary' />
-             </IconButton>;
-         break;
-         default:
-           icon = 'undefined';
-       }
-       return (<span>{icon}</span>);
-    };
-
-
-/*
-    if (this.state.gains.length > 0 ) {
-      this.sliders = this.state.gains.map((value, index) => {
-        return (
-        <div className='slider' key={index}>
-        <center>
-        {this.inputAudio[index].name} ({this.state.gains[index]})<br />
-        0 <input type='range' id={index} name='gainSlider' 
-        min='0' max='100' value={this.state.gains[index]}
-        onChange={this.handleGainSlider} /> 100
-        </center>
-        </div>
-        );
-      });
-    }
-*/
-
-    const EffectControls = () => {
-     return (
-     <span>
-     <div className='text-divider'>{m.speedTitle1} 
-       (<font color= 'green'>{(100*this.state.playSpeed).toFixed(0)}%)</font>
-       &nbsp; {m.speedTitle2}
-    </div>
-    <center>
-     &plusmn; 10% <IconButton 
-         onClick={() => this.setSpeed({target: {name: 'sub10'}})} > 
-     <RemoveIcon color='primary'/> </IconButton>
-     <IconButton
-         onClick={() => this.setSpeed({target: {name: 'add10'}})} > 
-     <AddIcon color='primary'/> </IconButton>
-     &nbsp;&nbsp;&nbsp;
-     &plusmn; 1% <IconButton
-        onClick={() => this.setSpeed({target: {name: 'sub1'}})} > 
-     <RemoveIcon color='primary'/> </IconButton>
-     <IconButton
-        onClick={() => this.setSpeed({target: {name: 'add1'}})} > 
-     <AddIcon color='primary'/> </IconButton>
-</center>
-
-     <div className='text-divider'>{m.pitchTitle}&nbsp; 
- (<font color='green'>{this.state.playPitch.toFixed(1)}</font>) (-12 -- +12)</div>
-<center>
-     b/# <IconButton
-        onClick={() => this.setPitch({target: {name: 'sub1'}})} > 
-     <RemoveIcon color='primary'/> </IconButton>
-     <IconButton
-        onClick={() => this.setPitch({target: {name: 'add1'}})} > 
-     <AddIcon color='primary'/> </IconButton>
-     &nbsp;&nbsp;&nbsp;
-     &plusmn; 10 cents <IconButton
-        onClick={() => this.setPitch({target: {name: 'sub10c'}})} > 
-     <RemoveIcon color='primary'/> </IconButton>
-     <IconButton
-        onClick={() => this.setPitch({target: {name: 'add10c'}})} > 
-     <AddIcon color='primary'/> </IconButton>
-      </center></span>);
-    }
-
     return (
      <div className="App">
-     {m.title1}<br />{m.title2} &emsp;
-     <span className='small-button'>
+     {m.title}
+     <br />
+     <center>
+     (language) &ensp;
+     <span className='tiny-button'>
      <Tooltip title={m.switchLang}>
       <button onClick = {this.switchLanguage}>
       {this.state.language === 'ja' ? 'EN' : 'JP' }</button>
      </Tooltip>
      </span>
+     &ensp;(AudioWorklet)
+     <Tooltip title={m.worklet}>
+     <IconButton name='toggleWorklet'
+     onClick = {
+       () => {
+        if (isAudioWorklet)
+        this.setState({useAudioWorklet: !this.state.useAudioWorklet});}
+     } >
+     <MoodIcon color={this.state.useAudioWorklet? 'primary':'disabled'} />
+     </IconButton>
+     </Tooltip>
+     </center>
      <hr />
      <span className="selectFile">
      <Tooltip title={m.fileReader}>
@@ -278,7 +201,41 @@ class App extends Component {
 
      <div className='text-divider'>{m.playerTitle}</div>
      <center>
-     <PlayButton />
+    {(() => {
+       let icon;
+       switch(this.state.startButtonStr){
+         case 'load files first!':
+           icon = 
+             <Tooltip title={m.alert}>
+             <span><IconButton
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PlayCircleOutlineIcon color='disabled'/>
+             </IconButton></span></Tooltip>;
+         break;
+         case 'Play': 
+           icon = <Tooltip title={m.playButton}><IconButton  
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PlayCircleOutlineIcon color='primary' />
+             </IconButton></Tooltip>;
+         break;
+         case 'Resume':
+           icon = <IconButton  
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PlayCircleOutlineIcon style={{color: '#00aa00' }} />
+             </IconButton>;
+         break;
+         case 'Pause': 
+           icon = <IconButton  
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PauseCircleOutlineOutlinedIcon color='primary' />
+             </IconButton>;
+         break;
+         default:
+           icon = 'undefined';
+       }
+       return (<span>{icon}</span>);
+      })()
+    }
      <Tooltip title={m.stopButton}>
      <IconButton  
        onClick={() => this.handlePlay({target: {name: 'stop'}})} >
@@ -319,7 +276,46 @@ class App extends Component {
 
      </center>
 
-    {!this.state.bypass ? <EffectControls /> : ''}
+    {this.state.bypass ?  '' : 
+     <span>
+     <div className='text-divider'>{m.speedTitle1} 
+       (<font color= 'green'>{(100*this.state.playSpeed).toFixed(0)}%)</font>
+       &nbsp; {m.speedTitle2}
+    </div>
+    <center>
+     &plusmn; 10% <IconButton 
+         onClick={() => this.setSpeed({target: {name: 'sub10'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+         onClick={() => this.setSpeed({target: {name: 'add10'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+     &nbsp;&nbsp;&nbsp;
+     &plusmn; 1% <IconButton
+        onClick={() => this.setSpeed({target: {name: 'sub1'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+        onClick={() => this.setSpeed({target: {name: 'add1'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+</center>
+
+     <div className='text-divider'>{m.pitchTitle}&nbsp; 
+ (<font color='green'>{this.state.playPitch.toFixed(1)}</font>) (-12 -- +12)</div>
+<center>
+     b/# <IconButton
+        onClick={() => this.setPitch({target: {name: 'sub1'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+        onClick={() => this.setPitch({target: {name: 'add1'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+     &nbsp;&nbsp;&nbsp;
+     &plusmn; 10 cents <IconButton
+        onClick={() => this.setPitch({target: {name: 'sub10c'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+        onClick={() => this.setPitch({target: {name: 'add10c'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+      </center></span>
+    }
 
      <div className='slider' key='master'>
        <div className='text-divider'>{m.masterGainTitle}&nbsp;
@@ -421,9 +417,11 @@ class App extends Component {
               gainNode: null,
               gain: 100,
            });
-         
+      
+     /*   
            console.log ('inputAudio, gains length', 
               this.inputAudio.length, this.state.gains.length);
+     */
           
            // const gains = [...this.state.gains, 100];
            const gains = this.state.gains; gains.push(100);
@@ -436,7 +434,9 @@ class App extends Component {
                gains: gains,
            });
 
-          }.bind(this),
+           // this.inputAudio.sort((a,b) => a.name - b.name);
+
+         }.bind(this),
 
          function (error) { console.log ("decode error: " + error.err) }
        )
@@ -632,7 +632,7 @@ class App extends Component {
         case 'Play':
           console.log('Play');
           if (this.inputAudio.length === 0) break;
-          if (audioWorkletAvailable)
+          if (this.state.useAudioWorklet)
             this.playABWorklet (0, this.state.timeA, this.state.timeB);
           else this.playAB (0, this.state.timeA, this.state.timeB);
 
@@ -801,8 +801,16 @@ class App extends Component {
         gainNode.connect(shifter);
     }
 
-    shifter.connect(context.destination);
+    if (!offline) {
+      const masterGainNode = context.createGain();
+      masterGainNode.gain.value = this.state.masterGain/100.0;
+      this.masterGainNode = masterGainNode;
+      shifter.connect(masterGainNode);
+      masterGainNode.connect(context.destination);
+    }
+
     const startedAt = context.currentTime + delay;
+    // const startedAt = context.currentTime + 2;
     for (let i=0; i < this.inputAudio.length; i++){
       // this.inputAudio[i].source.start(startedAt, timeA, timeB - timeA);
       this.inputAudio[i].source.start(startedAt, timeA);
@@ -810,11 +818,11 @@ class App extends Component {
 
     this.inputAudio[0].source.onended = function(e) {
       console.log('source 0', e);
+      shifter.stop();
     }
 
    shifter.onUpdate = function(val) { 
-     // console.log ('PlayingAt', val);
-     this.setState({playingAt: val});
+     this.setState({playingAt: timeA + val});
    }.bind(this);
 
    shifter.onEnd = function() {
@@ -822,7 +830,36 @@ class App extends Component {
      for (let i=0; i < this.inputAudio.length; i++)
        this.inputAudio[i].gainNode.disconnect();
 
+          if (exporter === 'exportFile' ) {
+         // console.log ('Call exportToFile');
+         shifter.exportToFile('mix_' + Date.now() + '.wav');
+      } else if (exporter === 'playMix'){
+         console.log ('playing mix');
+         const context = this.audioCtx;
+         const source = context.createBufferSource();
+           this.mixedSource = source;
+           source.buffer = shifter.recordedBuffer;
+         const masterGainNode = context.createGain();
+           this.masterGainNode = masterGainNode;
+           masterGainNode.gain.value = 1.0;
+         source.connect(this.masterGainNode);
+         masterGainNode.connect(context.destination);
+         source.start();
+
+         source.onended = function(e) {
+           this.mixedSource = null;
+           this.setState({isPlaying: false});
+         }.bind(this)
+      }
+
+     this.shifter = null;
      this.setState({isPlaying: false, startButtonStr: 'Play'});
+
+     if (!offline && this.state.loop) 
+       this.playABWorklet(2, this.state.timeA, this.state.timeB);
+     else 
+       this.setState({ startButtonStr: 'Play' });
+
    }.bind(this);
 
   } // END playABWorklet
@@ -845,9 +882,9 @@ class App extends Component {
     console.log('addZeros');
     const output = context.createBuffer(
       input.numberOfChannels, 
-      input.length*2 + 30*input.sampleRate, 
+      input.length*2 + 5*input.sampleRate, 
       input.sampleRate
-    ); // additional 30 sec
+    ); // additional 5 sec
 
     for (let ch = 0; ch < output.numberOfChannels; ch++){
       const inSamples = input.getChannelData(ch);
@@ -856,7 +893,7 @@ class App extends Component {
     }
 
     return output;
-  }
+  } // End addZeros()
 
 }; // end class
 

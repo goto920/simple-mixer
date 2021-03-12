@@ -1,0 +1,40 @@
+<div>
+     <span>
+     <div className='text-divider'>{m.speedTitle1} 
+       (<font color= 'green'>{(100*this.state.playSpeed).toFixed(0)}%)</font>
+       &nbsp; {m.speedTitle2}
+    </div>
+    <center>
+     &plusmn; 10% <IconButton 
+         onClick={() => this.setSpeed({target: {name: 'sub10'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+         onClick={() => this.setSpeed({target: {name: 'add10'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+     &nbsp;&nbsp;&nbsp;
+     &plusmn; 1% <IconButton
+        onClick={() => this.setSpeed({target: {name: 'sub1'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+        onClick={() => this.setSpeed({target: {name: 'add1'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+</center>
+
+     <div className='text-divider'>{m.pitchTitle}&nbsp; 
+ (<font color='green'>{this.state.playPitch.toFixed(1)}</font>) (-12 -- +12)</div>
+<center>
+     b/# <IconButton
+        onClick={() => this.setPitch({target: {name: 'sub1'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+        onClick={() => this.setPitch({target: {name: 'add1'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+     &nbsp;&nbsp;&nbsp;
+     &plusmn; 10 cents <IconButton
+        onClick={() => this.setPitch({target: {name: 'sub10c'}})} > 
+     <RemoveIcon color='primary'/> </IconButton>
+     <IconButton
+        onClick={() => this.setPitch({target: {name: 'add10c'}})} > 
+     <AddIcon color='primary'/> </IconButton>
+      </center></span>
+</div>

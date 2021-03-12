@@ -1,0 +1,36 @@
+    {(() => {
+       let icon;
+       switch(this.state.startButtonStr){
+         case 'load files first!':
+           icon = 
+             <Tooltip title={m.alert}>
+             <span><IconButton
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PlayCircleOutlineIcon color='disabled'/>
+             </IconButton></span></Tooltip>;
+         break;
+         case 'Play': 
+           icon = <Tooltip title={m.playButton}><IconButton  
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PlayCircleOutlineIcon color='primary' />
+             </IconButton></Tooltip>;
+         break;
+         case 'Resume':
+           icon = <IconButton  
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PlayCircleOutlineIcon style={{color: '#00aa00' }} />
+             </IconButton>;
+         break;
+         case 'Pause': 
+           icon = <IconButton  
+             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
+             <PauseCircleOutlineOutlinedIcon color='primary' />
+             </IconButton>;
+         break;
+         default:
+           icon = 'undefined';
+       }
+       return (<span>{icon}</span>);
+
+     }
+    };)

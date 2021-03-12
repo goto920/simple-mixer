@@ -1,3 +1,6 @@
+import {saveAs} from 'file-saver';
+import * as toWav from 'audiobuffer-to-wav';
+
 const noop = function() {return;}
 
 class MySoundTouchWorkletNode extends AudioWorkletNode {
@@ -59,6 +62,19 @@ class MySoundTouchWorkletNode extends AudioWorkletNode {
       }
     }
   } // End messgeProcessor()
+
+  exportToFile (filename){
+    if (!this.record) return;
+
+    if (this._recordedBuffer === null) this.createProcessedBuffer();
+
+    const blob = new Blob([toWav(this._recordedBuffer)], 
+       {type: 'audio/vnd.wav'});
+    saveAs(blob, filename);
+
+    return;
+  } // end exportToFile()
+
 
 };
 

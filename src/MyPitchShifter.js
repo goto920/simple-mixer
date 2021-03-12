@@ -92,6 +92,12 @@ export default class MyPitchShifter {
     }
   }
 
+/*
+  connect(node){
+    this._node.connect(node);
+  }
+*/
+
 
   createProcessedBuffer(){
 

@@ -123,6 +123,8 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs,outputs,parameters){
+    if (inputs[0].length !== 2) return;
+
     if (this.options.bypass) { // pass through for test
       if (this.nVirtualOutputFrames <= this.options.nInputFrames){
         this.passThrough(inputs[0],outputs[0]); // through for test
