@@ -410,6 +410,10 @@ class App extends Component {
       reader.onload = function (e){
        this.audioCtx.decodeAudioData(reader.result,
          function (audioBuffer) {
+           if (audioBuffer.numberOfChannels !== 2) {
+             alert ('Sorry, only stereo files are supported');
+             return;
+           }
            this.inputAudio.push({
               name: files[i].name,
               data: audioBuffer,
@@ -418,12 +422,6 @@ class App extends Component {
               gain: 100,
            });
       
-     /*   
-           console.log ('inputAudio, gains length', 
-              this.inputAudio.length, this.state.gains.length);
-     */
-          
-           // const gains = [...this.state.gains, 100];
            const gains = this.state.gains; gains.push(100);
 
            this.setState({
@@ -434,7 +432,7 @@ class App extends Component {
                gains: gains,
            });
 
-           // this.inputAudio.sort((a,b) => a.name - b.name);
+     // this.inputAudio.sort((a,b) => a.name - b.name); // mmm.. does not work
 
          }.bind(this),
 
@@ -465,6 +463,10 @@ class App extends Component {
 
     const sampleRate = this.inputAudio[0].data.sampleRate;
     const channels = this.inputAudio[0].data.numberOfChannels;
+    if (channels !== 2) {
+      alert ('Sorry, only stereo files are supported');
+      return;
+    }
     const nInputFrames = (timeB - timeA)*sampleRate;
     const nOutputFrames = Math.max(nInputFrames, 
                       nInputFrames/this.state.playSpeed);
@@ -647,11 +649,7 @@ class App extends Component {
     }
 
     if (event.target.name === 'stop') {
-      if (this.inputAudio.length === 0 && this.mixedSource === null) return;
-
-      for (let i=0; i < this.inputAudio.length; i++)
-        if (this.inputAudio[i].source) this.inputAudio[i].source.stop();
-
+      if (this.shifter) this.shifter.stop();
       if (this.mixedSource) this.mixedSource.stop();
 
       this.setState ({loop: false, startButtonStr: 'Play', playingAt: 
@@ -821,15 +819,14 @@ class App extends Component {
       shifter.stop();
     }
 
-   shifter.onUpdate = function(val) { 
+    shifter.onUpdate = function(val) { 
      this.setState({playingAt: timeA + val});
-   }.bind(this);
+    }.bind(this);
 
-   shifter.onEnd = function() {
-     console.log('shifter onEnd');
-     for (let i=0; i < this.inputAudio.length; i++)
-       this.inputAudio[i].gainNode.disconnect();
-
+    shifter.onEnd = function() {
+      console.log('shifter onEnd');
+      for (let i=0; i < this.inputAudio.length; i++)
+        this.inputAudio[i].gainNode.disconnect();
           if (exporter === 'exportFile' ) {
          // console.log ('Call exportToFile');
          shifter.exportToFile('mix_' + Date.now() + '.wav');
@@ -858,7 +855,8 @@ class App extends Component {
      if (!offline && this.state.loop) 
        this.playABWorklet(2, this.state.timeA, this.state.timeB);
      else 
-       this.setState({ startButtonStr: 'Play' });
+       this.setState({ startButtonStr: 'Play', playingAt: this.state.timeA });
+     // timeA, timeB may be changed during playback
 
    }.bind(this);
 

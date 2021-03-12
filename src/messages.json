@@ -1,10 +1,10 @@
 {
 "en": {
   "title": "KG's Simple Mixer for stem files with speed/pitch control",
-  "alert": "Select file(s) first!",
+  "alert": "Select stereo audio file(s) first!",
   "switchLang": "日本語に切り替え",
   "worklet": "AudioWorklet on/off only if supported",
-  "fileReader": "Select file(s) at once or add one by one. Local or on a cloud drive", 
+  "fileReader": "Select stereo audio file(s) at once or add one by one. Local or on a cloud drive", 
   "clearButton": "Clear",
   "clearFiles": "Clear all imported files",
   "timeTitle": "Time",
@@ -24,7 +24,7 @@
   "speedTitle2": "(50 -- 200, real-time<= 100)",
   "pitchTitle": "Pitch",
   "masterGainTitle": "Master Gain",
-  "trackGainTitle": "Track Gain",
+  "trackGainTitle": "Track Gain(s)",
   "version": "Version",
   "url": "https://goto920.github.io/demos/simple-mixer/",
   "guide": "Guide/Update",
@@ -33,10 +33,10 @@
 
 "ja": {
   "title": "KGのstemファイル用シンプルミキサー 速度/ピッチ(音程) コントロール付き",
-  "alert": "最初に1つ以上のファイルを選んで下さい",
+  "alert": "最初に1つ以上のステレオ音声ファイルを選んでね",
   "switchLang": "Switch to English",
   "worklet": "使える場合はAudioWorklet on/off",
-  "fileReader": "ローカルまたはクラウドドライブ上の1つ以上のファイルをまとめて、または1つずつ追加", 
+  "fileReader": "ローカルまたはクラウドドライブ上の1つ以上のステレオ音声ファイルをまとめて、または1つずつ追加", 
   "clearButton": "クリア",
   "clearFiles": "読み込んだファイルの全消去",
   "timeTitle": "時間",
