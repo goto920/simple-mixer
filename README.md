@@ -165,7 +165,7 @@ shifter.onEnd = function () {
 
 ```
 
-### Plan
+### Issues/Plan/Status
 - Export mix to local file (as wav) ==> OK
 - Adding pitch/speed control ==> OK
 - Realtime playback -- slow down only (50 -- 100%) ==> OK
@@ -173,5 +173,15 @@ shifter.onEnd = function () {
   - Export after real-time playback for iOS (with AudioContext)
   - Real-time playback is choppy if speed > 100%.
 - Select file one by one (for iOS devices) ==> OK
+- (Mar. 11) Voice recording with playback ==> Will think of this after other issues
 - (Mar. 11) Worklet version ==> trying in branch worklet
+  - Writing own worklet node and processor with the original soundtouchJS
+  - works great with AudioContext real-time playback
+  - Not tested with OfflineAudioContext yet.
 - (Mar. 11) Player control bug (stop earlier than end when slow playback)
+  - testing in branch worklet
+  - Adding silence to the original source (double length for 50% playback)
+- (Mar. 11) Performance issues ==> Reduce UI rendering 
+  - testing in branch worklet
+  - Component --> direct insertion in render return (ugly though)
+
