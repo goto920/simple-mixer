@@ -24,7 +24,7 @@
 
 const noop = function() {return;}
 
-import MyFilter from './MyFilter';
+import MyFilter from './MyFilter-modified';
 import { SoundTouch } from './soundtouch-modified';
 
 class MySoundTouchProcessor extends AudioWorkletProcessor {

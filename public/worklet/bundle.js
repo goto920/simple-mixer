@@ -89,7 +89,7 @@ exports.default = MyFilter;
 },{"./soundtouch-modified":3}],2:[function(require,module,exports){
 "use strict";
 
-var _MyFilter = _interopRequireDefault(require("./MyFilter"));
+var _MyFilterModified = _interopRequireDefault(require("./MyFilter-modified"));
 
 var _soundtouchModified = require("./soundtouch-modified");
 
@@ -146,7 +146,7 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
     this.updateInterval = this.options.updateInterval;
     this.soundtouch = new _soundtouchModified.SoundTouch(); // console.log('this.soundtouch', this.soundtouch);
 
-    this.filter = new _MyFilter.default(this.soundtouch, noop);
+    this.filter = new _MyFilterModified.default(this.soundtouch, noop);
     this.recordedSamples = [[], []];
     this.inSamples = new Float32Array(128 * 2);
     this.outSamples = new Float32Array(128 * 2);
@@ -325,7 +325,7 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
 ;
 registerProcessor('my-soundtouch-processor', MySoundTouchProcessor);
 
-},{"./MyFilter":1,"./soundtouch-modified":3}],3:[function(require,module,exports){
+},{"./MyFilter-modified":1,"./soundtouch-modified":3}],3:[function(require,module,exports){
 "use strict";
 
 /*
