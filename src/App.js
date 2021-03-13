@@ -21,7 +21,7 @@
 import React, { Component }  from 'react';
 import './App.css';
 import MyPitchShifter from './MyPitchShifter'; // soundtouchJS
-import MySoundTouchWorkletNode from './MySoundTouchWorkletNode';
+import MyPitchShifterWorkletNode from './MyPitchShifterWorkletNode';
 
 import packageJSON from '../package.json';
 import messages from './messages.json'; // English/Japanese messages
@@ -499,7 +499,7 @@ class App extends Component {
 
     for (let i=0; i < this.inputAudio.length; i++){
       const source = context.createBufferSource();
-      source.buffer = this.inputAudio[i].data;
+      source.buffer = this.addZeros(context,this.inputAudio[i].data);
         this.inputAudio[i].source = source;
       const gainNode = context.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
@@ -519,9 +519,9 @@ class App extends Component {
     }
 
     const startedAt = context.currentTime + delay;
-    for (let i=0; i < this.inputAudio.length; i++){
-      this.inputAudio[i].source.start(startedAt, timeA, timeB - timeA);
-    }
+    for (let i=0; i < this.inputAudio.length; i++)
+      this.inputAudio[i].source.start(startedAt, timeA);
+      // this.inputAudio[i].source.start(startedAt, timeA, timeB - timeA);
 
     if (offline) context.startRendering();
 
@@ -636,7 +636,8 @@ class App extends Component {
           if (this.inputAudio.length === 0) break;
           if (this.state.useAudioWorklet)
             this.playABWorklet (0, this.state.timeA, this.state.timeB);
-          else this.playAB (0, this.state.timeA, this.state.timeB);
+          else 
+            this.playAB (0, this.state.timeA, this.state.timeB);
 
           this.setState ({startButtonStr: 'Pause'})
         break;
@@ -663,7 +664,12 @@ class App extends Component {
       const recording = true;
       let offline = true; 
       if (iOS) { offline = false; }
-      this.playAB (0, this.state.timeA, this.state.timeB, 
+      // offline = false; // for test
+      if (this.state.useAudioWorklet)
+        this.playABWorklet (0, this.state.timeA, this.state.timeB, 
+          recording, offline, event.target.name);
+      else 
+        this.playAB (0, this.state.timeA, this.state.timeB, 
           recording, offline, event.target.name);
 
       return;
@@ -771,13 +777,12 @@ class App extends Component {
         bypass: this.state.bypass,
         recording: recording,
         nInputFrames: nInputFrames, 
-        processedAudioBuffer: [],
         updateInterval: 1.0, 
         sampleRate: sampleRate
       },
     };
 
-    const shifter = new MySoundTouchWorkletNode(
+    const shifter = new MyPitchShifterWorkletNode(
       context,
       'my-soundtouch-processor',  // registered name in the worklet file
       options // options to the AudioWorkletProcessor
@@ -795,8 +800,8 @@ class App extends Component {
       const gainNode = context.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
         this.inputAudio[i].gainNode = gainNode;
-        source.connect(gainNode);
-        gainNode.connect(shifter);
+      source.connect(gainNode);
+      gainNode.connect(shifter);
     }
 
     if (!offline) {
@@ -805,14 +810,10 @@ class App extends Component {
       this.masterGainNode = masterGainNode;
       shifter.connect(masterGainNode);
       masterGainNode.connect(context.destination);
-    }
+    } else shifter.connect(context.destination);
 
-    const startedAt = context.currentTime + delay;
-    // const startedAt = context.currentTime + 2;
-    for (let i=0; i < this.inputAudio.length; i++){
-      // this.inputAudio[i].source.start(startedAt, timeA, timeB - timeA);
-      this.inputAudio[i].source.start(startedAt, timeA);
-    }
+    for (let i=0; i < this.inputAudio.length; i++)
+      this.inputAudio[i].source.start(context.currentTime + delay, timeA);
 
     this.inputAudio[0].source.onended = function(e) {
       console.log('source 0', e);
@@ -820,25 +821,31 @@ class App extends Component {
     }
 
     shifter.onUpdate = function(val) { 
-     this.setState({playingAt: timeA + val});
+      this.setState({playingAt: timeA + val});
     }.bind(this);
 
-    shifter.onEnd = function() {
+    shifter.onEnd = function(recordedBuffer) { 
+       // recordedBuffer made in shifter from worklet's message data
       console.log('shifter onEnd');
+
       for (let i=0; i < this.inputAudio.length; i++)
         this.inputAudio[i].gainNode.disconnect();
-          if (exporter === 'exportFile' ) {
-         // console.log ('Call exportToFile');
-         shifter.exportToFile('mix_' + Date.now() + '.wav');
+      this.setState({isPlaying: false});
+
+      if (exporter === 'exportFile' ) {
+        console.log('exportFile');
+        shifter.exportToFile('mix_' + Date.now() + '.wav');
+        this.setState({isPlaying: false}); // audioBuffer is in the shifter
       } else if (exporter === 'playMix'){
-         console.log ('playing mix');
-         const context = this.audioCtx;
-         const source = context.createBufferSource();
-           this.mixedSource = source;
-           source.buffer = shifter.recordedBuffer;
+        console.log('playMix');
+        const context = this.audioCtx;
+        this.setState({isPlaying: true});
+        const source = context.createBufferSource();
+          this.mixedSource = source;
+          source.buffer = recordedBuffer;
          const masterGainNode = context.createGain();
            this.masterGainNode = masterGainNode;
-           masterGainNode.gain.value = 1.0;
+           masterGainNode.gain.value = this.state.masterGain/100;
          source.connect(this.masterGainNode);
          masterGainNode.connect(context.destination);
          source.start();
@@ -846,17 +853,9 @@ class App extends Component {
          source.onended = function(e) {
            this.mixedSource = null;
            this.setState({isPlaying: false});
-         }.bind(this)
+         }.bind(this);
+
       }
-
-     this.shifter = null;
-     this.setState({isPlaying: false, startButtonStr: 'Play'});
-
-     if (!offline && this.state.loop) 
-       this.playABWorklet(2, this.state.timeA, this.state.timeB);
-     else 
-       this.setState({ startButtonStr: 'Play', playingAt: this.state.timeA });
-     // timeA, timeB may be changed during playback
 
    }.bind(this);
 

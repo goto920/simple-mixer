@@ -132,7 +132,6 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
                 bypass: true/false,
                 recording: true/false,
                 nInputFrames: 
-                processedAudioBuffer: return value
                 updateInterval: callback interval for playingAt,
                 sampleRate:
         }
@@ -141,8 +140,7 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
     this.options = options.processorOptions; // console.log('this.options', this.options);
 
     this.nOutputFrames = 0;
-    this.nVirtualOutputFrames = 0; //    this.nInputFrames = 0;
-
+    this.nVirtualOutputFrames = 0;
     this.playingAt = 0;
     this.lastPlayingAt = 0;
     this.updateInterval = this.options.updateInterval;
@@ -152,53 +150,63 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
     this.recordedSamples = [[], []];
     this.inSamples = new Float32Array(128 * 2);
     this.outSamples = new Float32Array(128 * 2);
-    this.port.onmessage = this.messageProcessor.bind(this); //    this.process = this.process.bind(this);
-    //    this.passThrough = this.passThrough.bind(this);
+    this.port.onmessage = this.messageProcessor.bind(this);
+    this.process = this.process.bind(this);
+    this.passThrough = this.passThrough.bind(this);
   } // end constructor
 
 
   messageProcessor(event) {
     if (event.data.command) {
-      const command = event.data.command;
+      const {
+        command,
+        args
+      } = event.data;
+      console.log('Worklet ', command, args[0]);
 
       switch (command) {
         case 'setTempo':
-          this.soundtouch.tempo = event.data.args[0];
-          console.log('Worklet setTempo', event.data.args[0]);
+          this.soundtouch.tempo = args[0];
           this.port.postMessage({
             status: 'OK',
-            args: ['setTempo', this.soundtouch.tempo]
+            args: [command, this.soundtouch.tempo]
           });
           break;
 
         case 'getTempo':
           this.port.postMessage({
             status: 'OK',
-            args: ['getTempo', this.soundtouch.tempo]
+            args: [command, this.soundtouch.tempo]
           });
           break;
 
         case 'setPitch':
-          this.soundtouch.pitch = event.data.args[0];
-          console.log('Worklet setPitch', event.data.args[0]);
+          this.soundtouch.pitch = args[0];
           this.port.postMessage({
             status: 'OK',
-            args: ['setPitch', this.soundtouch.pitch]
+            args: [command, this.soundtouch.pitch]
           });
           break;
 
         case 'getPitch':
           this.port.postMessage({
             status: 'OK',
-            args: ['getPitch', this.soundtouch.pitch]
+            args: [command, this.soundtouch.pitch]
           });
           break;
 
         case 'setUpdateInterval':
-          this.options.updateInterval = event.data.args[0];
+          this.options.updateInterval = args[0];
           this.port.postMessage({
             status: 'OK',
-            args: ['getUpdateInterval', this.updateInterval]
+            args: [command, this.updateInterval]
+          });
+          break;
+
+        case 'getRecordedSamples':
+          this.port.postMessage({
+            status: 'OK',
+            args: [command, this.recordedSamples]
           });
           break;
 
@@ -211,12 +219,10 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
 
 
   stop() {
-    this.process = null; // stop processing
-
-    this.createProcessedBuffer();
+    this.process = null;
     this.port.postMessage({
       command: 'End',
-      args: []
+      args: [this.recordedSamples]
     });
   }
 
@@ -228,7 +234,7 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs, parameters) {
-    if (inputs[0].length !== 2) return;
+    if (inputs[0].length !== 2) return true;
 
     if (this.options.bypass) {
       // pass through for test
@@ -236,13 +242,19 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
         this.passThrough(inputs[0], outputs[0]); // through for test
 
         this.nVirtualOutputFrames += outputs[0][0].length;
-      } else this.stop();
+      } else {
+        this.stop();
+        return false;
+      }
     } else {
       if (this.nVirtualOutputFrames <= this.options.nInputFrames) {
         const nOutputFrames = this.processFilter(inputs[0], outputs[0]); // console.log('nOutputFrames, tempo', this.soundtouch.tempo);
 
         this.nVirtualOutputFrames += nOutputFrames * this.soundtouch.tempo;
-      } else this.stop();
+      } else {
+        this.stop();
+        return false;
+      }
     } // console.log('worklet virtualoutFrames', this.nVirtualOutputFrames)
 
 
@@ -258,6 +270,7 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
     }
 
     this.options.nInputFrames += inputs[0].length;
+    return true;
   } // end process()
 
 
@@ -304,24 +317,7 @@ class MySoundTouchProcessor extends AudioWorkletProcessor {
     }
 
     return framesExtracted;
-  } // End process
-
-
-  createProcessedBuffer() {
-    if (!this.record) return;
-    const context = new AudioContext();
-    const outputBuffer = context.createBuffer(this.recordedSamples.length, // channels
-    this.recordedSamples[0].length, // sample length
-    this.options.ampleRate);
-    context.close();
-    const left = outputBuffer.getChannelData(0);
-    const right = outputBuffer.getChannelData(1);
-    left.set(this.recordedSamples[0]);
-    right.set(this.recordedSamples[1]); // Typedarray.set(array[, offset])
-
-    this.recordedBuffer = outputBuffer; // Audio buffer returned as the argument
-    // console.log('this._recordedBuffer len = ', this._recordedBuffer.length);
-  } // end createProcessedBuffer()
+  } // End processFilter()
 
 
 }
