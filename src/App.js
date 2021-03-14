@@ -18,24 +18,23 @@
 
  */
 
-import React, { Component }  from 'react';
+import { Component }  from 'react';
 import './App.css';
 import MyPitchShifter from './jslibs/MyPitchShifter'; // soundtouchJS
 import MyPitchShifterWorkletNode from './jslibs/MyPitchShifterWorkletNode';
+// UI Components
+import PlayButton from './jslibs/PlayButton';
+import SpeedPitchControls from './jslibs/SpeedPitchControls';
+import TrackGainSliderList from './jslibs/TrackGainSliderList';
 
 import packageJSON from '../package.json';
 import messages from './messages.json'; // English/Japanese messages
 
 // material-ui Icons, Tooltip
 import { IconButton, Tooltip } from '@material-ui/core';
-import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import PauseCircleOutlineOutlinedIcon
-        from '@material-ui/icons/PauseCircleOutlineOutlined';
 import StopOutlinedIcon from '@material-ui/icons/StopOutlined';
 import LoopOutlinedIcon from '@material-ui/icons/LoopOutlined';
 import GetAppIcon from '@material-ui/icons/GetApp';
-import AddIcon from '@material-ui/icons/Add';
-import RemoveIcon from '@material-ui/icons/Remove';
 import PlayCircleFilledWhiteIcon 
    from '@material-ui/icons/PlayCircleFilledWhite';
 import NotInterestedIcon from '@material-ui/icons/NotInterested';
@@ -45,8 +44,8 @@ import MicIcon from '@material-ui/icons/Mic';
 
 // get subversion string 
 const version = packageJSON.subversion;
-// switch languages
 
+// switch languages
 let defaultLang = 'en';
 let m = messages.en;
 console.log(window.navigator.language);
@@ -62,12 +61,7 @@ if(  navigator.userAgent.match(/iPhone/i)
   iOS = true;
 }
 
-/*
-window.AudioContext = window.AudioContext || window.webkitAudioContext;
-window.OfflineAudioContext = window.OfflineAudioContext 
- || window.webkitOfflineAudioContext;
-*/
-
+// AudioWorklet check with OfflineAudioContext (from Google Labs example)
 let tmp = false;
 let context = new OfflineAudioContext(1, 1, 44100);
 if (context.audioWorklet && 
@@ -87,7 +81,6 @@ class App extends Component {
     this.inputAudio = [];
     this.mixedSource = null;
     this.masterGainNode = null;
-    this.sliders = [];
  
     this.state = {
       language: defaultLang,
@@ -113,7 +106,6 @@ class App extends Component {
     this.handlePlay = this.handlePlay.bind(this);
     this.handleGainSlider = this.handleGainSlider.bind(this);
     this.handleTimeSlider = this.handleTimeSlider.bind(this);
-    this.playAB = this.playAB.bind(this);
     this.playABWorklet = this.playABWorklet.bind(this);
     this.switchLanguage = this.switchLanguage.bind(this);
   }   
@@ -158,8 +150,10 @@ class App extends Component {
      &emsp;<span className='tiny-button'>
      <Tooltip title={m.clearFiles}>
      <button name='clearFile' onClick = {() => {
-       this.setState({gains: [], playButtonNextAction: 'load files first!'});
-       this.inputAudio = []; this.sliders = [];} } >{m.clearButton}</button></Tooltip></span>
+       this.setState({gains: [], 
+       playButtonNextAction: 'load files first!'});
+       this.inputAudio = []; }} 
+     >{m.clearButton}</button></Tooltip></span>
      <br />
      </span><br/>
      <div className='text-divider'>{m.timeTitle}&nbsp;
@@ -206,47 +200,17 @@ class App extends Component {
 
      <div className='text-divider'>{m.playerTitle}</div>
      <center>
-    <Tooltip title='Record Voice'>
+    <Tooltip title={m.record}>
     <IconButton 
      onClick={()=> this.setState({micOn: !this.state.micOn})} >
     <MicIcon color={this.state.micOn ? 'secondary' : 'primary'} />
     </IconButton>
     </Tooltip>
-    {(() => {
-       let icon;
-       switch(this.state.playButtonNextAction){
-         case 'load files first!':
-           icon = 
-             <Tooltip title={m.alert}>
-             <span><IconButton
-             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PlayCircleOutlineIcon color='disabled'/>
-             </IconButton></span></Tooltip>;
-         break;
-         case 'Play': 
-           icon = <Tooltip title={m.playButton}><IconButton  
-             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PlayCircleOutlineIcon color='primary' />
-             </IconButton></Tooltip>;
-         break;
-         case 'Resume':
-           icon = <IconButton  
-             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PlayCircleOutlineIcon style={{color: '#00aa00' }} />
-             </IconButton>;
-         break;
-         case 'Pause': 
-           icon = <IconButton  
-             onClick={() => this.handlePlay({target: {name: 'startPause'}})} >
-             <PauseCircleOutlineOutlinedIcon color='primary' />
-             </IconButton>;
-         break;
-         default:
-           icon = 'undefined';
-       }
-       return (<span>{icon}</span>);
-      })()
-    }
+    <PlayButton 
+      nextAction={this.state.playButtonNextAction}
+      handler={this.handlePlay}
+      messages={m}
+   />
      <Tooltip title={m.stopButton}>
      <IconButton  
        onClick={() => this.handlePlay({target: {name: 'stop'}})} >
@@ -288,44 +252,13 @@ class App extends Component {
      </center>
 
     {this.state.bypass ?  '' : 
-     <span>
-     <div className='text-divider'>{m.speedTitle1} 
-       (<font color= 'green'>{(100*this.state.playSpeed).toFixed(0)}%)</font>
-       &nbsp; {m.speedTitle2}
-    </div>
-    <center>
-     &plusmn; 10% <IconButton 
-         onClick={() => this.setSpeed({target: {name: 'sub10'}})} > 
-     <RemoveIcon color='primary'/> </IconButton>
-     <IconButton
-         onClick={() => this.setSpeed({target: {name: 'add10'}})} > 
-     <AddIcon color='primary'/> </IconButton>
-     &nbsp;&nbsp;&nbsp;
-     &plusmn; 1% <IconButton
-        onClick={() => this.setSpeed({target: {name: 'sub1'}})} > 
-     <RemoveIcon color='primary'/> </IconButton>
-     <IconButton
-        onClick={() => this.setSpeed({target: {name: 'add1'}})} > 
-     <AddIcon color='primary'/> </IconButton>
-</center>
-
-     <div className='text-divider'>{m.pitchTitle}&nbsp; 
- (<font color='green'>{this.state.playPitch.toFixed(1)}</font>) (-12 -- +12)</div>
-<center>
-     b/# <IconButton
-        onClick={() => this.setPitch({target: {name: 'sub1'}})} > 
-     <RemoveIcon color='primary'/> </IconButton>
-     <IconButton
-        onClick={() => this.setPitch({target: {name: 'add1'}})} > 
-     <AddIcon color='primary'/> </IconButton>
-     &nbsp;&nbsp;&nbsp;
-     &plusmn; 10 cents <IconButton
-        onClick={() => this.setPitch({target: {name: 'sub10c'}})} > 
-     <RemoveIcon color='primary'/> </IconButton>
-     <IconButton
-        onClick={() => this.setPitch({target: {name: 'add10c'}})} > 
-     <AddIcon color='primary'/> </IconButton>
-      </center></span>
+    <SpeedPitchControls 
+      playSpeed={this.state.playSpeed}
+      playPitch={this.state.playPitch}
+      setSpeed={this.setSpeed}
+      setPitch={this.setPitch}
+      messages={m}
+    />
     }
 
      <div className='slider' key='master'>
@@ -337,62 +270,12 @@ class App extends Component {
            onChange={this.handleGainSlider} /> 150
        </center>
      </div>
-
      <div className='text-divider'>{m.trackGainTitle}</div>
-       {this.inputAudio.length > 0 ? 
-       <div className='slider' key={0}>
-       <center>
-       {this.inputAudio[0].name} ({this.state.gains[0]})<br />
-        0 <input type='range' id={0} name='gainSlider' 
-        min='0' max='100' value={this.state.gains[0]}
-        onChange={this.handleGainSlider} /> 100
-      </center></div> : <div></div>}
-
-       {this.inputAudio.length > 1 ? 
-       <div className='slider' key={1}>
-       <center>
-       {this.inputAudio[1].name} ({this.state.gains[1]})<br />
-        0 <input type='range' id={1} name='gainSlider' 
-        min='0' max='100' value={this.state.gains[1]}
-        onChange={this.handleGainSlider} /> 100
-      </center></div> : <div></div>}
-
-       {this.inputAudio.length > 2 ? 
-       <div className='slider' key={2}>
-       <center>
-       {this.inputAudio[2].name} ({this.state.gains[2]})<br />
-        0 <input type='range' id={2} name='gainSlider' 
-        min='0' max='100' value={this.state.gains[2]}
-        onChange={this.handleGainSlider} /> 100
-      </center></div> : <div></div>}
-
-       {this.inputAudio.length > 3 ? 
-       <div className='slider' key={3}>
-       <center>
-       {this.inputAudio[3].name} ({this.state.gains[3]})<br />
-        0 <input type='range' id={3} name='gainSlider' 
-        min='0' max='100' value={this.state.gains[3]}
-        onChange={this.handleGainSlider} /> 100
-      </center></div> : <div></div>}
-
-       {this.inputAudio.length > 4 ? 
-       <div className='slider' key={4}>
-       <center>
-       {this.inputAudio[4].name} ({this.state.gains[4]})<br />
-        0 <input type='range' id={4} name='gainSlider' 
-        min='0' max='100' value={this.state.gains[4]}
-        onChange={this.handleGainSlider} /> 100
-      </center></div> : <div></div>}
-
-       {this.inputAudio.length > 5 ? 
-       <div className='slider' key={5}>
-       <center>
-       {this.inputAudio[5].name} ({this.state.gains[5]})<br />
-        0 <input type='range' id={5} name='gainSlider' 
-        min='0' max='100' value={this.state.gains[5]}
-        onChange={this.handleGainSlider} /> 100
-      </center></div> : <div></div>}
-
+     <TrackGainSliderList
+        inputAudio={this.inputAudio} 
+        gains={this.state.gains}
+        handler={this.handleGainSlider}
+     />
      <hr />
      {m.version}: {version} &nbsp;&nbsp;
      <a href={m.url}
@@ -459,152 +342,6 @@ class App extends Component {
 
   } // end loadFiles()
 
-  playAB(delay, timeA, timeB, recording = false, 
-       offline = false, exporter='none'){
-
-    console.log('playAB', 
-      'delay, timeA, timeB, recording, offline, exporter =', 
-      delay, timeA, timeB, recording, offline, exporter);
-
-    if (this.state.isPlaying) return;
-    if (this.audioCtx.state === 'suspended' ) this.audioCtx.resume();
-
-    this.setState({isPlaying : true});
-    this.shifter = null;
-
-    const sampleRate = this.inputAudio[0].data.sampleRate;
-    const channels = this.inputAudio[0].data.numberOfChannels;
-    if (channels !== 2) {
-      alert ('Sorry, only stereo files are supported');
-      return;
-    }
-    const nInputFrames = (timeB - timeA)*sampleRate;
-    const nOutputFrames = Math.max(nInputFrames, 
-                      nInputFrames/this.state.playSpeed);
-  
-    let context;
-    if (offline) {
-      context = new OfflineAudioContext (
-        channels, // typically 2
-        nOutputFrames + 1.0*sampleRate, // length in frames (add 1 sec)
-        sampleRate
-       ); // Offline
-      if (OfflineAudioContext.suspend) context.suspend();
-
-    } else context = this.audioCtx;
-
-    const shifter = new MyPitchShifter(
-       context, nInputFrames, 4096, recording, this.state.bypass);
-
-    if (!offline) this.shifter = shifter; // to allow change while playing
-
-    shifter.tempo = this.state.playSpeed;
-
-    shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
-
-    if (!offline) {
-      const masterGainNode = context.createGain();
-      masterGainNode.gain.value = this.state.masterGain/100.0;
-      this.masterGainNode = masterGainNode;
-    }
-
-    for (let i=0; i < this.inputAudio.length; i++){
-      const source = context.createBufferSource();
-      source.buffer = this.addZeros(context,this.inputAudio[i].data);
-        this.inputAudio[i].source = source;
-      const gainNode = context.createGain();
-        gainNode.gain.value = this.state.gains[i]/100.0;
-        this.inputAudio[i].gainNode = gainNode;
-      source.connect(gainNode);
-      gainNode.connect(shifter.node);
-    }
-
-    if (offline)   
-      shifter.connect(context.destination);
-    else {
-      const masterGainNode = context.createGain();
-      this.masterGainNode = masterGainNode;
-      masterGainNode.gain.value = this.state.masterGain/100.0;
-      shifter.connect(masterGainNode);
-      masterGainNode.connect(context.destination);
-    }
-
-    const startedAt = context.currentTime + delay;
-    for (let i=0; i < this.inputAudio.length; i++)
-      this.inputAudio[i].source.start(startedAt, timeA);
-      // this.inputAudio[i].source.start(startedAt, timeA, timeB - timeA);
-
-    if (offline) context.startRendering();
-
-    this.setState({playingAt: timeA});
-
-    if (offline)
-      shifter.onUpdateInterval = 10.0;
-    else shifter.onUpdateInterval = 1.0;
-
-    shifter.onUpdate = function() {
-      this.setState({playingAt: timeA + shifter.playingAt});
-    }.bind(this);
-
-    shifter.onEnd = function () { // callback from MyPitchShifter
-      console.log('MyPitchShifter.onEnd');
-
-      for (let i=0; i < this.inputAudio.length; i++)
-            this.inputAudio[i].gainNode.disconnect();
-
-      if (exporter === 'exportFile' ) {
-         // console.log ('Call exportToFile');
-         shifter.exportToFile('mix_' + Date.now() + '.wav');
-      } else if (exporter === 'playMix'){
-         console.log ('playing mix');
-         const context = this.audioCtx;
-         const source = context.createBufferSource();
-           this.mixedSource = source;
-           source.buffer = shifter.recordedBuffer;
-         const masterGainNode = context.createGain();
-           this.masterGainNode = masterGainNode;
-           masterGainNode.gain.value = 1.0;
-         source.connect(this.masterGainNode);
-         masterGainNode.connect(context.destination);
-         source.start();
-
-         source.onended = function(e) {
-           this.mixedSource = null;
-           this.setState({isPlaying: false});
-         }.bind(this)
-
-      }
- 
-      this.shifter = null;
-
-      this.setState({
-        playingAt: this.state.timeA, // maybe modified during playback
-        isPlaying: false
-      });
-
-      if (!offline && this.state.loop) 
-           this.playAB(2, this.state.timeA, this.state.timeB);
-        else this.setState({ playButtonNextAction: 'Pause' });
-
-    }.bind(this);
-
-    // if (!offline) /* When stop button is pressed */
-      this.inputAudio[0].source.onended = function (e) { 
-        if (this.state.playingAt < timeB) {
-          shifter.stop(); 
-          this.setState({isPlaying: false, playButtonNextAction: 'Play'});
-        }
-      }.bind(this)
-
-    if (offline)
-      context.oncomplete = function(e) {
-        console.log( 
-         'Offline render complete (data is useless though) length = ',
-          e.renderedBuffer.length);
-      }
-
-  } // END playAB
-
   handleTimeSlider(event){
 
     if(event.target.name !== 'timeSlider') return;
@@ -645,10 +382,13 @@ class App extends Component {
         case 'Play':
           console.log('Play');
           if (this.inputAudio.length === 0) break;
-          if (this.state.useAudioWorklet)
-            this.playABWorklet (0, this.state.timeA, this.state.timeB);
-          else 
+            /*
+            if (this.state.useAudioWorklet)
+             this.playABWorklet (0, this.state.timeA, this.state.timeB);
+            else 
             this.playAB (0, this.state.timeA, this.state.timeB);
+            */
+           this.playABWorklet (0, this.state.timeA, this.state.timeB);
 
           this.setState ({playButtonNextAction: 'Pause'})
         break;
@@ -781,6 +521,7 @@ class App extends Component {
                       nInputFrames/this.state.playSpeed);
 
     let context = null; 
+
     if (offline){
 
       context = new OfflineAudioContext (
@@ -808,25 +549,23 @@ class App extends Component {
     };
 
    // load the same worklet for OfflineAudioContext
-
     let shifter = null;
-    try {
-      shifter = new MyPitchShifterWorkletNode(
-        context,
-        'my-soundtouch-processor',  // registered name in the worklet file
-        options // options to the AudioWorkletProcessor
-      );
-    } catch (err) {
+    if (!this.state.useAudioWorklet) {
+      shifter = new MyPitchShifter( context, nInputFrames, 
+        4096, recording, this.state.bypass); // ScriptProcessorNode
+    } else {
       try {
         this.loadModule(context, 'worklet/bundle.js');
-        shifter = new MyPitchShifterWorkletNode(context, 
-        'my-soundtouch-processor', options);
-      } catch {
-        console.log('OfflineContext AudioWorklet does not work. Falling back to ScriptProcessorNode');
-        shifter = new MyPitchShifter(
-          context, nInputFrames, 4096, recording, this.state.bypass);
+        shifter = new MyPitchShifterWorkletNode( context,
+        'my-soundtouch-processor',  // registered in the worklet file
+         options // options passed to the AudioWorkletProcessor
+        );
+      } catch (err) { 
+      console.log('Offline worklet failed. Fallback to ScriptProcessorNode');
+        shifter = new MyPitchShifter(context, nInputFrames, 
+          4096, recording, this.state.bypass);
       }
-    }
+    } // end if useAudioWorklet 
 
     this.shifter = shifter;
     if (offline) shifter.onUpdateInterval = updateInterval;
@@ -857,7 +596,7 @@ class App extends Component {
     for (let i=0; i < this.inputAudio.length; i++)
       this.inputAudio[i].source.start(context.currentTime + delay, timeA);
 
-    if(offline) context.startRendering();
+    if (offline) context.startRendering();
 
     this.inputAudio[0].source.onended = function(e) {
       console.log('source 0 onended');
