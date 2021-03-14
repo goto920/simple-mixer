@@ -19,7 +19,7 @@ class MyPitchShifterWorkletNode extends AudioWorkletNode {
 
   } // End constructor()
 
-//  get node(){ return this;} // for compatibili
+get node(){ return this;} // for compatibility
 
   set onEnd (func) { this._onEnd = func; }
   set onUpdate (func) { this._onUpdate = func;}

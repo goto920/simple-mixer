@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "homepage": ".",
-  "subversion": "worklet-20210313-00",
+  "subversion": "worklet-20210314-00",
   "dependencies": {
     "@material-ui/core": "^4.11.3",
     "@material-ui/icons": "^4.11.2",
@@ -20,6 +20,7 @@
     "react-scripts": "4.0.3",
     "reactstrap": "^8.9.0",
     "soundtouchjs": "^0.1.26",
+    "standardized-audio-context": "^25.1.11",
     "web-vitals": "^0.2.4",
     "workbox-background-sync": "^5.1.4",
     "workbox-broadcast-update": "^5.1.4",
