@@ -1,8 +1,49 @@
-     <div className='text-divider'>{m.speedTitle1} (
-<font color= 'green'>{(100*this.state.playSpeed).toFixed(0)}%)</font>
-&nbsp; {m.speedTitle2}
-</div>
-<center>
+import { Component } from 'react';
+
+// material-ui Icons
+import { IconButton } from '@material-ui/core';
+import AddIcon from '@material-ui/icons/Add';
+import RemoveIcon from '@material-ui/icons/Remove';
+
+export default class SpeedPitchControls extends Component {
+  constructor(props){
+    super();
+
+    this.state = {
+      playSpeed: props.playSpeed,
+      playPitch: props.playPitch,
+      m : props.messages,
+    };
+
+    this.setSpeed = props.setSpeed;
+    this.setPitch = props.setPitch;
+  }
+
+componentDidUpdate(prevProps) {
+  if (prevProps.playSpeed !== this.props.playSpeed) {
+    this.setState({playSpeed: this.props.playSpeed}); 
+  }
+
+  if (prevProps.playPitch !== this.props.playPitch) {
+    this.setState({playPitch : this.props.playPitch}); 
+  }
+
+  if (prevProps.messages !== this.props.messages) {
+    this.setState({m: this.props.messages}); 
+  }
+}
+
+  render(){
+    const {m} = this.state;
+
+    return(<span>
+    <span>
+     <div className='text-divider'>{m.speedTitle1} 
+       (<font color= 'green'>{(100*this.state.playSpeed).toFixed(0)}%)</font>
+       &nbsp; {m.speedTitle2}
+    </div>
+
+      <center>
      &plusmn; 10% <IconButton 
          onClick={() => this.setSpeed({target: {name: 'sub10'}})} > 
      <RemoveIcon color='primary'/> </IconButton>
@@ -34,4 +75,11 @@
      <IconButton
         onClick={() => this.setPitch({target: {name: 'add10c'}})} > 
      <AddIcon color='primary'/> </IconButton>
-</center>
+      </center></span>
+
+      </span>); 
+
+
+  } // end render
+
+};

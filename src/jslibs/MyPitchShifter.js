@@ -88,10 +88,10 @@ export default class MyPitchShifter {
       console.log('shifter stop');
       this._node.onaudioprocess = null; 
       this._node.disconnect();
-      this._onEnd(); 
+      if (this._recordedBuffer === null) this.createProcessedBuffer();
+      this._onEnd(this._recordedBuffer); 
     }
   }
-
 
   createProcessedBuffer(){
 
@@ -131,7 +131,7 @@ export default class MyPitchShifter {
    this._playingAt = this._nVirtualOutputFrames/this.sampleRate;
 
    if (this.playingAt - this.lastPlayingAt >= this._onUpdateInterval) {
-      this._onUpdate();
+      this._onUpdate(this._playingAt);
       this.lastPlayingAt = this._playingAt;
    }
 

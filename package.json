@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "homepage": ".",
-  "subversion": "20210309-01",
+  "subversion": "20210315-00",
   "dependencies": {
     "@material-ui/core": "^4.11.3",
     "@material-ui/icons": "^4.11.2",
@@ -57,5 +57,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "browser-resolve": "^2.0.0",
+    "esmify": "^2.1.1"
   }
 }
