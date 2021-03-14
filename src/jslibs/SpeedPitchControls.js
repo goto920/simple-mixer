@@ -14,17 +14,18 @@ export default class SpeedPitchControls extends Component {
       playPitch: props.playPitch,
       m : props.messages,
     };
+
     this.setSpeed = props.setSpeed;
     this.setPitch = props.setPitch;
   }
 
 componentDidUpdate(prevProps) {
-  if (prevProps.speed !== this.props.speed) {
-    this.setState({playSpeed: this.props.speed}); 
+  if (prevProps.playSpeed !== this.props.playSpeed) {
+    this.setState({playSpeed: this.props.playSpeed}); 
   }
 
-  if (prevProps.pitch !== this.props.pitch) {
-    this.setState({playPitch : this.props.pitch}); 
+  if (prevProps.playPitch !== this.props.playPitch) {
+    this.setState({playPitch : this.props.playPitch}); 
   }
 
   if (prevProps.messages !== this.props.messages) {

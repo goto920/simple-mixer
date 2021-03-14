@@ -106,7 +106,9 @@ class App extends Component {
     this.handlePlay = this.handlePlay.bind(this);
     this.handleGainSlider = this.handleGainSlider.bind(this);
     this.handleTimeSlider = this.handleTimeSlider.bind(this);
-    this.playABWorklet = this.playABWorklet.bind(this);
+    this.playAB = this.playAB.bind(this);
+    this.setSpeed = this.setSpeed.bind(this);
+    this.setPitch = this.setPitch.bind(this);
     this.switchLanguage = this.switchLanguage.bind(this);
   }   
 
@@ -296,8 +298,6 @@ class App extends Component {
 
     if (this.audioCtx === null) this.audioCtx = new AudioContext();
 
-    this.loadModule(this.audioCtx,'worklet/bundle.js');
-
     for (let i=0; i < files.length; i++){
       const reader = new FileReader();
 
@@ -382,13 +382,7 @@ class App extends Component {
         case 'Play':
           console.log('Play');
           if (this.inputAudio.length === 0) break;
-            /*
-            if (this.state.useAudioWorklet)
-             this.playABWorklet (0, this.state.timeA, this.state.timeB);
-            else 
-            this.playAB (0, this.state.timeA, this.state.timeB);
-            */
-           this.playABWorklet (0, this.state.timeA, this.state.timeB);
+           this.playAB (0, this.state.timeA, this.state.timeB);
 
           this.setState ({playButtonNextAction: 'Pause'})
         break;
@@ -417,9 +411,6 @@ class App extends Component {
       if (iOS) { offline = false; }
       // offline = false; // for test
       if (this.state.useAudioWorklet)
-        this.playABWorklet (0, this.state.timeA, this.state.timeB, 
-          recording, offline, event.target.name);
-      else 
         this.playAB (0, this.state.timeA, this.state.timeB, 
           recording, offline, event.target.name);
 
@@ -462,10 +453,7 @@ class App extends Component {
     if (speed < 0.5) speed = 0.5;
     else if (speed > 2.0) speed = 2.0;
 
-    if (this.shifter) {
-      this.shifter.tempo = speed;
-      // console.log("Tempo set: ", this.shifter.tempo);
-    }
+    if (this.shifter) this.shifter.tempo = speed;
 
     this.setState({playSpeed: speed});
   } // End set speed
@@ -483,12 +471,10 @@ class App extends Component {
     if (pitch < -12) pitch = -12.0;
     else if (pitch > 12) pitch = 12.0
 
-    if (this.shifter){
-      this.shifter.pitch = Math.pow(2.0,pitch/12.0);
-      // console.log("Rate set: ", this.shifter.rate); 
-    }
+    if (this.shifter) this.shifter.pitch = Math.pow(2.0,pitch/12.0);
 
     this.setState({playPitch: pitch});
+
   } // End setPitch
 
   switchLanguage(e) {
@@ -502,12 +488,10 @@ class App extends Component {
     }
   } // End switchLanguage()
 
-/* Experimental */
-
-  playABWorklet(delay, timeA, timeB, recording = false, 
+  playAB(delay, timeA, timeB, recording = false, 
        offline = false, exporter='none'){
 
-    console.log('playABWorklet', 
+    console.log('playAB', 
        'delay, timeA, timeB, recording, offline, exporter = ', 
        delay, timeA, timeB, recording, offline, exporter);
 
@@ -548,12 +532,11 @@ class App extends Component {
       },
     };
 
-   // load the same worklet for OfflineAudioContext
     let shifter = null;
     if (!this.state.useAudioWorklet) {
       shifter = new MyPitchShifter( context, nInputFrames, 
         4096, recording, this.state.bypass); // ScriptProcessorNode
-    } else {
+    } else { // load the same worklet for OfflineAudioContext
       try {
         this.loadModule(context, 'worklet/bundle.js');
         shifter = new MyPitchShifterWorkletNode( context,
@@ -561,14 +544,14 @@ class App extends Component {
          options // options passed to the AudioWorkletProcessor
         );
       } catch (err) { 
-      console.log('Offline worklet failed. Fallback to ScriptProcessorNode');
+      console.log('Worklet failed. Fallback to ScriptProcessorNode');
         shifter = new MyPitchShifter(context, nInputFrames, 
           4096, recording, this.state.bypass);
       }
     } // end if useAudioWorklet 
 
     this.shifter = shifter;
-    if (offline) shifter.onUpdateInterval = updateInterval;
+    console.log ('PlayAB() this.shifter', this.shifter);
 
     shifter.tempo = this.state.playSpeed;
     shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
@@ -656,7 +639,7 @@ class App extends Component {
 
    }.bind(this);
 
-  } // END playABWorklet
+  } // END playAB
 
   async loadModule (context,filename){
     if (!context) return false;

@@ -19,7 +19,7 @@ export default class TrackGainSlider extends Component {
  }
 
   render(){
-   if (!this.state.gain || !this.trackName) return null;
+   if (this.state.gain === undefined || !this.trackName === undefined) return null;
 
    return (<div className='slider'>
     {this.trackName} ({this.state.gain})<br />
