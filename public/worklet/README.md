@@ -50,5 +50,6 @@ in the main program.
 Output file name is arbitorary and used in addModule().
 
 ```
-  browserify MySoundTouchWorklet.js -p esmify > bundle.js
+  in public/worklet/src/
+  browserify MySoundTouchWorklet.js -p esmify > ../bundle.js
 ```
