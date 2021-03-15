@@ -41,7 +41,7 @@ export default class MyPitchShifter {
     this._filter = new MyFilter(this._soundtouch, noop); 
     this._onEnd = noop;
     this._onUpdate = noop;
-    this._onUpdateInterval = 0.5;
+    this._updateInterval = 0.5;
 
     this._node = context.createScriptProcessor(bufferSize,2,2);
     this._node.onaudioprocess = this.onaudioprocess.bind(this);
@@ -80,8 +80,8 @@ export default class MyPitchShifter {
 
   set onEnd(func){ this._onEnd = func; }
   set onUpdate(func){ this._onUpdate = func; }
-  set onUpdateInterval(val){ this._onUpdateInterval = val;}
-  get onUpdateInterval(){ return this._onUpdateInterval;}
+  set updateInterval(val){ this._updateInterval = val;}
+  get updateInterval(){ return this._updateInterval;}
 
   stop(){ 
     if (this._node.onaudioprocess) {
@@ -130,7 +130,7 @@ export default class MyPitchShifter {
 
    this._playingAt = this._nVirtualOutputFrames/this.sampleRate;
 
-   if (this.playingAt - this.lastPlayingAt >= this._onUpdateInterval) {
+   if (this.playingAt - this.lastPlayingAt >= this._updateInterval) {
       this._onUpdate(this._playingAt);
       this.lastPlayingAt = this._playingAt;
    }

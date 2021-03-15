@@ -14,7 +14,7 @@
 
    Pitch modification and slow down/speed up work.
    Slow down only for real-time playback.
-   fast playback is impossible by nature.
+   Fast real-time playback is impossible by nature.
 
  */
 
@@ -63,15 +63,25 @@ if(  navigator.userAgent.match(/iPhone/i)
 
 // AudioWorklet check with OfflineAudioContext (from Google Labs example)
 let tmp = false;
-let context = new OfflineAudioContext(1, 1, 44100);
+
+if (OfflineAudioContext) tmp = true; else tmp = false;
+const isOfflineAudioContext = tmp;
+
+//let context = new OfflineAudioContext(1, 1, 44100);
+
+let context = new AudioContext();
 if (context.audioWorklet && 
     typeof context.audioWorklet.addModule === 'function'){
     tmp = true;
-}
+} else tmp = false; 
+context.close();
 const isAudioWorklet = tmp;
 
 if (isAudioWorklet) console.log('Audio Worklet is available');
   else console.log('Audio Worklet is NOT available');
+
+if (isOfflineAudioContext) console.log('OfflineAudioContext is available');
+  else console.log('OfflineAudioContext is NOT available');
 
 class App extends Component {
 
@@ -408,8 +418,8 @@ class App extends Component {
       if (this.inputAudio.length === 0 || this.state.isPlaying) return;
 
       const recording = true;
-      let offline = true; 
-      if (iOS) { offline = false; }
+      let offline = isOfflineAudioContext;
+      // if (iOS) { offline = false; }
       this.playAB (0, this.state.timeA, this.state.timeB, 
           recording, offline, event.target.name);
 
@@ -535,6 +545,7 @@ class App extends Component {
     if (!this.state.useAudioWorklet) {
       shifter = new MyPitchShifter( context, nInputFrames, 
         4096, recording, this.state.bypass); // ScriptProcessorNode
+      shifter.updateInterval = updateInterval;
     } else { // load the same worklet for OfflineAudioContext
       try {
         this.loadModule(context, 'worklet/bundle.js');
@@ -546,6 +557,7 @@ class App extends Component {
       console.log('Worklet failed. Fallback to ScriptProcessorNode');
         shifter = new MyPitchShifter(context, nInputFrames, 
           4096, recording, this.state.bypass);
+        shifter.updateInterval = updateInterval;
       }
     } // end if useAudioWorklet 
 
