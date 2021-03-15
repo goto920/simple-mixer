@@ -45,6 +45,8 @@ import MicIcon from '@material-ui/icons/Mic';
 // get subversion string 
 const version = packageJSON.subversion;
 
+alert(navigator.userAgent);
+
 // switch languages
 let defaultLang = 'en';
 let m = messages.en;
@@ -87,7 +89,7 @@ class App extends Component {
 
   constructor (props) {
     super();
-    this.audioCtx = new AudioContext(); // Online AudioContext
+    this.audioCtx = null;
     this.inputAudio = [];
     this.mixedSource = null;
     this.masterGainNode = null;
@@ -306,7 +308,12 @@ class App extends Component {
     if (event.target.files.length === 0) return;
     const files = event.target.files; 
 
-    if (this.audioCtx === null) this.audioCtx = new AudioContext();
+    console.log('loadFiles');
+    if (this.audioCtx === null) {
+      console.log('loadFiles audioCtx creation, addModule()');
+      this.audioCtx = new AudioContext();
+      this.loadModule(this.audioCtx,'worklet/bundle.js');
+    }
 
     for (let i=0; i < files.length; i++){
       const reader = new FileReader();
@@ -513,17 +520,17 @@ class App extends Component {
     const nOutputFrames = Math.max(nInputFrames, 
                       nInputFrames/this.state.playSpeed);
 
-    let context = null; 
-
+    let context = null;
     if (offline){
-
       context = new OfflineAudioContext (
         channels,
         nOutputFrames + 5.0*sampleRate, // add extra 5 second
         sampleRate 
       );
-      if (OfflineAudioContext.suspend) context.suspend();
-
+      console.log('OfflineAudioContext');
+      if (this.state.useAudioWorklet)
+        this.loadModule(context, 'worklet/bundle.js');
+        // how to wait for the loading finished??
     } else context = this.audioCtx;
 
     this.setState({isPlaying : true});
@@ -542,27 +549,28 @@ class App extends Component {
     };
 
     let shifter = null;
-    if (!this.state.useAudioWorklet) {
+    if (offline || !this.state.useAudioWorklet) {
       shifter = new MyPitchShifter( context, nInputFrames, 
         4096, recording, this.state.bypass); // ScriptProcessorNode
       shifter.updateInterval = updateInterval;
     } else { // load the same worklet for OfflineAudioContext
       try {
-        this.loadModule(context, 'worklet/bundle.js');
-        shifter = new MyPitchShifterWorkletNode( context,
+        shifter = new MyPitchShifterWorkletNode(context,
         'my-soundtouch-processor',  // registered in the worklet file
-         options // options passed to the AudioWorkletProcessor
-        );
-        console.log('Offline Worklet functional?');
+        options); // options passed to the AudioWorkletProcessor
+        console.log('AudioWorklet functional');
       } catch (err) { 
-      console.log('Worklet failed. Fallback to ScriptProcessorNode');
-        shifter = new MyPitchShifter(context, nInputFrames, 
-          4096, recording, this.state.bypass);
+        console.log(err);
+        shifter = null;
+        shifter = new MyPitchShifter( context, nInputFrames, 
+          4096, recording, this.state.bypass); // ScriptProcessorNode
         shifter.updateInterval = updateInterval;
+        console.log('Worklet failed. Fallback to ScriptProcessorNode');
+        // Creation of shifter does not work for Online (reason unknown)
       }
     } // end if useAudioWorklet 
 
-    this.shifter = shifter;
+    if (!offline) this.shifter = shifter;
 
     shifter.tempo = this.state.playSpeed;
     shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
@@ -581,20 +589,21 @@ class App extends Component {
       gainNode.connect(shifter.node);
     }
 
-   if(!offline) {
+  if (!offline) {
     const masterGainNode = context.createGain();
     masterGainNode.gain.value = this.state.masterGain/100.0;
     this.masterGainNode = masterGainNode;
     shifter.node.connect(masterGainNode);
     masterGainNode.connect(context.destination);
-   } else {
-    shifter.node.connect(context.destination);
-   }
+  } else shifter.node.connect(context.destination);
 
     for (let i=0; i < this.inputAudio.length; i++)
       this.inputAudio[i].source.start(context.currentTime + delay, timeA);
 
-    if (offline) context.startRendering();
+    if (offline) {
+      console.log('startRendering');
+      context.startRendering();
+    }
 
     this.inputAudio[0].source.onended = function(e) {
       console.log('source 0 onended');
@@ -659,12 +668,15 @@ class App extends Component {
   async loadModule (context,filename){
     if (!context) return false;
 
+    let name = context.constructor.name;
+    console.log(name, 'addModule()');
+
     try {
       await context.audioWorklet.addModule(filename);
-      // relative path from public (React)
+      console.log(name, 'AudioWorklet loaded');
       return true;
     } catch(e) {
-      console.log(e + '\n audioWorklet load failed'); 
+      console.log(e, name, 'AudioWorklet load failed');
       return false;
     }
 
