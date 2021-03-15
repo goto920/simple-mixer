@@ -50,11 +50,10 @@ export default class MyPitchShifter {
     this._nVirtualOutputFrames = 0;
     this._playingAt = 0;
 
-    this.outSamples = new Float32Array(bufferSize*2);
-    this.inSamples  = new Float32Array(bufferSize*2);
+    this.outSamples = new Float32Array(bufferSize*4);
+    this.inSamples  = new Float32Array(bufferSize*4);
     this.sampleRate = context.sampleRate; 
     this.nInputFrames = 0;
-    // this.moreInput = true;
 
   }
 
@@ -84,6 +83,7 @@ export default class MyPitchShifter {
   get updateInterval(){ return this._updateInterval;}
 
   stop(){ 
+    console.log('MyPitchshifter stop()');
     if (this._node.onaudioprocess) {
       console.log('shifter stop');
       this._node.onaudioprocess = null; 
@@ -115,6 +115,7 @@ export default class MyPitchShifter {
   } // end createProcessedBuffer()
 
   onaudioprocess(e){
+   console.log('onaudioprocess()');
 
    if (this.bypass) { // pass through for test
      if (this._nVirtualOutputFrames <= this._totalInputFrames){
@@ -140,8 +141,8 @@ export default class MyPitchShifter {
   }
 
   process(inputBuffer,outputBuffer) { // using soundtouchjs 
+    console.log('MyPitchShifter process');
     // input part
-
     const leftIn = inputBuffer.getChannelData(0);
     const rightIn = inputBuffer.getChannelData(1);
     const inSamples = this.inSamples; // LR Interleave

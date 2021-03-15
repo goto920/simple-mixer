@@ -553,6 +553,7 @@ class App extends Component {
         'my-soundtouch-processor',  // registered in the worklet file
          options // options passed to the AudioWorkletProcessor
         );
+        console.log('Offline Worklet functional?');
       } catch (err) { 
       console.log('Worklet failed. Fallback to ScriptProcessorNode');
         shifter = new MyPitchShifter(context, nInputFrames, 
@@ -562,7 +563,6 @@ class App extends Component {
     } // end if useAudioWorklet 
 
     this.shifter = shifter;
-    console.log ('PlayAB() this.shifter', this.shifter);
 
     shifter.tempo = this.state.playSpeed;
     shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
@@ -581,11 +581,15 @@ class App extends Component {
       gainNode.connect(shifter.node);
     }
 
+   if(!offline) {
     const masterGainNode = context.createGain();
     masterGainNode.gain.value = this.state.masterGain/100.0;
     this.masterGainNode = masterGainNode;
     shifter.node.connect(masterGainNode);
     masterGainNode.connect(context.destination);
+   } else {
+    shifter.node.connect(context.destination);
+   }
 
     for (let i=0; i < this.inputAudio.length; i++)
       this.inputAudio[i].source.start(context.currentTime + delay, timeA);
