@@ -507,14 +507,12 @@ class App extends Component {
     let context = null; 
 
     if (offline){
-
       context = new OfflineAudioContext (
         channels,
         nOutputFrames + 5.0*sampleRate, // add extra 5 second
         sampleRate 
       );
       if (OfflineAudioContext.suspend) context.suspend();
-
     } else context = this.audioCtx;
 
     this.setState({isPlaying : true});
@@ -560,9 +558,8 @@ class App extends Component {
 
       const source = context.createBufferSource();
       if (offline) source.buffer = this.inputAudio[i].data;
-       else source.buffer = this.addZeros(context,this.inputAudio[i].data);
-
-        this.inputAudio[i].source = source;
+        else source.buffer = this.addZeros(context,this.inputAudio[i].data);
+      this.inputAudio[i].source = source;
       const gainNode = context.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
         this.inputAudio[i].gainNode = gainNode;
