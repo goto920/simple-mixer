@@ -24,9 +24,12 @@ public
 ├── manifest.json
 ├── robots.txt
 └── worklet
-    ├── MyFilter-modified.js (* copy of MyFilter.js. import line modified)
-    ├── MySoundTouchWorklet.js (* AudioWorkletProcessor)
-    ├── README.md (* How to bundle)
     ├── bundle.js (bundle of 3 other JS files for addModule())
-    └── soundtouch-modified.js (copy of dist/soundtouch.js. export line modified)
+    └── src
+        ├── MyFilter-modified.js (copy of src/MyFilter.js. import line modified)
+        ├── MySoundTouchWorklet.js (*AudioWorkletProcessor)
+        └── soundtouch-modified.js 
+(copy of node_modules/soundtouchjs/dist/soundtouch.js. 
+Last export line modified.)
+
 ```
