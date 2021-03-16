@@ -77,10 +77,12 @@ if (OfflineAudioContext) {
  } else tmp = false;
 const isOfflineAudioContext = tmp;
 
-//let context = new OfflineAudioContext(1, 1, 44100);
-
 let isAudioWorkletNode = false;
-if (AudioWorkletNode || window.webkit.AudioWorkletNode) {
+
+let AudioWorkletNode 
+      = window.AudioWorkletNode || window.webkitAudioWorkletNode;
+
+if (AudioWorkletNode) {
   isAudioWorkletNode = true;
   console.log('AudioWorkletNode available');
 }
@@ -595,7 +597,9 @@ class App extends Component {
     for (let i=0; i < this.inputAudio.length; i++){
 
       const source = context.createBufferSource();
-        source.buffer = this.addZeros(context,this.inputAudio[i].data);
+       if (i === 0)
+         source.buffer = this.addZeros(context,this.inputAudio[i].data);
+       else source.buffer = this.inputAudio[i].data;
         this.inputAudio[i].source = source;
       const gainNode = context.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
