@@ -123,7 +123,7 @@ const noop = function () {
   return;
 };
 
-class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
+class MySoundTouchProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super(); //    super(options);
 
@@ -220,16 +220,12 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
 
   stop() {
     console.log(this.name, '.stop()');
-    this.updatePlayingAt(); // this.process = null;
-
-    if (this.recordedSamples) this.port.postMessage({
+    this.process = null;
+    this.port.postMessage({
       command: 'End',
       args: [this.recordedSamples]
-    });else this.port.postMessage({
-      command: 'End',
-      args: []
     });
-    console.log(this.name, 'Worklet --> Node: End', this.recordedSamples);
+    console.log(this.name, 'Worklet --> Node', command);
   }
 
   updatePlayingAt() {
@@ -323,7 +319,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
 }
 
 ;
-registerProcessor('my-soundtouch-processor', MySoundTouchWorkletProcessor);
+registerProcessor('my-soundtouch-processor', MySoundTouchProcessor);
 
 },{"./MyFilter-modified":1,"./soundtouch-modified":3}],3:[function(require,module,exports){
 "use strict";

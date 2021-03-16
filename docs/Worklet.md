@@ -1,6 +1,8 @@
 # Files for AudioWorklet (public/worklet/src/)
 
-public/ is the document root for Node.js (React) App
+- public/ is the document root for Node.js (React) App
+- Note that a program using worklet should be served by an HTTPS server.
+- Only local host can load worklets with "npm start"
 
 ## MySoundTouchWorklet.js
 

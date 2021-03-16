@@ -9,12 +9,16 @@
 
    1) PitchShifter ---> MyPitchShifter (minimum code)
                      includes ScriptProcessorNode
+       or --> MyPitchShifternode (AudioWorkletNode)
 
    2) MyFilter extends SimpleFilter
 
    Pitch modification and slow down/speed up work.
    Slow down only for real-time playback.
    Fast real-time playback is impossible by nature.
+
+   3) AudioWorklet is in public/worklet/ 
+      (public is the document root.)
 
  */
 
@@ -45,7 +49,7 @@ import MicIcon from '@material-ui/icons/Mic';
 // get subversion string 
 const version = packageJSON.subversion;
 
-alert(navigator.userAgent);
+// alert(navigator.userAgent);
 
 // switch languages
 let defaultLang = 'en';
@@ -56,34 +60,41 @@ if (window.navigator.language.slice(0,2) === 'ja') {
   m = messages.ja;
 }
 
+/*
 let iOS = false;
 if(  navigator.userAgent.match(/iPhone/i) 
   || navigator.userAgent.match(/iPod/i)
   || navigator.userAgent.match(/iPad/i)){
   iOS = true;
 }
+*/
 
 // AudioWorklet check with OfflineAudioContext (from Google Labs example)
 let tmp = false;
-
-if (OfflineAudioContext) tmp = true; else tmp = false;
+if (OfflineAudioContext) {
+  tmp = true; 
+  console.log('OfflineAudioContext available');
+ } else tmp = false;
 const isOfflineAudioContext = tmp;
 
 //let context = new OfflineAudioContext(1, 1, 44100);
 
-let context = new AudioContext();
+let isAudioWorkletNode = false;
+if (AudioWorkletNode || window.webkit.AudioWorkletNode) {
+  isAudioWorkletNode = true;
+  console.log('AudioWorkletNode available');
+}
+
+let context = new AudioContext(); 
+let isAudioWorklet = false;
 if (context.audioWorklet && 
     typeof context.audioWorklet.addModule === 'function'){
-    tmp = true;
-} else tmp = false; 
+  isAudioWorklet = true;
+  console.log('Audiocontext.AudioWorklet available');
+} 
 context.close();
-const isAudioWorklet = tmp;
 
-if (isAudioWorklet) console.log('Audio Worklet is available');
-  else console.log('Audio Worklet is NOT available');
-
-if (isOfflineAudioContext) console.log('OfflineAudioContext is available');
-  else console.log('OfflineAudioContext is NOT available');
+const isAudioWorkletAvailable = (isAudioWorkletNode & isAudioWorklet);
 
 class App extends Component {
 
@@ -108,7 +119,7 @@ class App extends Component {
       playSpeed: 1.0,
       playPitch: 0.0,
       bypass: false,
-      useAudioWorklet: isAudioWorklet,
+      useAudioWorklet: isAudioWorkletAvailable,
       micOn: false,
     };
 
@@ -148,7 +159,7 @@ class App extends Component {
      <IconButton name='toggleWorklet'
      onClick = {
        () => {
-        if (isAudioWorklet)
+        if (isAudioWorkletNode)
         this.setState({useAudioWorklet: !this.state.useAudioWorklet});}
      } >
      <MoodIcon color={this.state.useAudioWorklet? 'primary':'disabled'} />
@@ -302,7 +313,7 @@ class App extends Component {
     );
   }
 
-  loadFiles(event){
+  async loadFiles(event){
 
     if (event.target.name !== 'loadFiles') return;
     if (event.target.files.length === 0) return;
@@ -310,9 +321,14 @@ class App extends Component {
 
     console.log('loadFiles');
     if (this.audioCtx === null) {
-      console.log('loadFiles audioCtx creation, addModule()');
-      this.audioCtx = new AudioContext();
-      this.loadModule(this.audioCtx,'worklet/bundle.js');
+      console.log('AudioContext');
+      try {
+        this.audioCtx = new AudioContext();
+        await this.loadModule(this.audioCtx,'worklet/bundle.js');
+        console.log('AudioContext worklet module loaded');
+      } catch (error) {
+        console.log(error);
+      }
     }
 
     for (let i=0; i < files.length; i++){
@@ -504,7 +520,7 @@ class App extends Component {
     }
   } // End switchLanguage()
 
-  playAB(delay, timeA, timeB, recording = false, 
+  async playAB(delay, timeA, timeB, recording = false, 
        offline = false, exporter='none'){
 
     console.log('playAB', 
@@ -524,13 +540,11 @@ class App extends Component {
     if (offline){
       context = new OfflineAudioContext (
         channels,
-        nOutputFrames + 5.0*sampleRate, // add extra 5 second
+        nOutputFrames + 10*sampleRate, // add extra 10 second
         sampleRate 
       );
-      console.log('OfflineAudioContext');
-      if (this.state.useAudioWorklet)
-        this.loadModule(context, 'worklet/bundle.js');
-        // how to wait for the loading finished??
+      await this.loadModule (context, 'worklet/bundle.js');
+      console.log('OfflineAudioContext Worklet module loaded');
     } else context = this.audioCtx;
 
     this.setState({isPlaying : true});
@@ -549,16 +563,16 @@ class App extends Component {
     };
 
     let shifter = null;
-    if (offline || !this.state.useAudioWorklet) {
+    if (!this.state.useAudioWorklet) {
       shifter = new MyPitchShifter( context, nInputFrames, 
         4096, recording, this.state.bypass); // ScriptProcessorNode
       shifter.updateInterval = updateInterval;
     } else { // load the same worklet for OfflineAudioContext
       try {
-        shifter = new MyPitchShifterWorkletNode(context,
-        'my-soundtouch-processor',  // registered in the worklet file
-        options); // options passed to the AudioWorkletProcessor
-        console.log('AudioWorklet functional');
+        shifter = new MyPitchShifterWorkletNode( context, 
+          'my-soundtouch-processor', options); // ScriptProcessorNode
+        shifter.updateInterval = updateInterval;
+        console.log('AudioWorkletNode functional');
       } catch (err) { 
         console.log(err);
         shifter = null;
@@ -567,6 +581,7 @@ class App extends Component {
         shifter.updateInterval = updateInterval;
         console.log('Worklet failed. Fallback to ScriptProcessorNode');
         // Creation of shifter does not work for Online (reason unknown)
+
       }
     } // end if useAudioWorklet 
 
@@ -578,9 +593,7 @@ class App extends Component {
     for (let i=0; i < this.inputAudio.length; i++){
 
       const source = context.createBufferSource();
-      if (offline) source.buffer = this.inputAudio[i].data;
-       else source.buffer = this.addZeros(context,this.inputAudio[i].data);
-
+        source.buffer = this.addZeros(context,this.inputAudio[i].data);
         this.inputAudio[i].source = source;
       const gainNode = context.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
@@ -607,7 +620,7 @@ class App extends Component {
 
     this.inputAudio[0].source.onended = function(e) {
       console.log('source 0 onended');
-      if (this.state.playingAt < timeB) {
+      if (this.state.playingAt < timeB) { 
         shifter.stop(); 
         this.setState({isPlaying: false, playButtonNextAction: 'Play'});
       }
@@ -634,14 +647,11 @@ class App extends Component {
       this.setState({isPlaying: false});
 
       if (exporter === 'exportFile' ) {
-
-        console.log('exportFile');
+        console.log('exportFile', recordedBuffer.length);
         shifter.exportToFile('mix_' + Date.now() + '.wav');
         this.setState({isPlaying: false}); // audioBuffer is in the shifter
-
       } else if (exporter === 'playMix'){
-
-        console.log('playMix');
+        console.log('playMix', recordedBuffer.length);
         const context = this.audioCtx;
         this.setState({isPlaying: true, playButtonNextAction: 'Pause'});
         const source = context.createBufferSource();
@@ -665,21 +675,20 @@ class App extends Component {
 
   } // END playAB
 
-  async loadModule (context,filename){
-    if (!context) return false;
+  async loadModule (
+    context,filename,moduleName,workletOptions) {
+      if (!context) return false;
+      let name = context.constructor.name;
 
-    let name = context.constructor.name;
-    console.log(name, 'addModule()');
+      try {
+        await context.audioWorklet.addModule(filename);
+        console.log(name, 'AudioWorklet loaded');
+      } catch(e) {
+        console.log(e, name, 'AudioWorklet load failed');
+        return null
+      }
 
-    try {
-      await context.audioWorklet.addModule(filename);
-      console.log(name, 'AudioWorklet loaded');
-      return true;
-    } catch(e) {
-      console.log(e, name, 'AudioWorklet load failed');
-      return false;
-    }
-
+    return true;
   }
 
   addZeros(context,input){ // return zero padded double length AudioBuffer
