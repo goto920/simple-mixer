@@ -592,13 +592,10 @@ class App extends Component {
     shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
 
     for (let i=0; i < this.inputAudio.length; i++){
-
       const source = context.createBufferSource();
-      if (i === 0)
+      if (i === 0) 
         source.buffer = this.addZeros(context,this.inputAudio[i].data);
-      else
-        source.buffer = this.inputAudio[i].data;
-
+      else source.buffer = this.inputAudio[i].data;
         this.inputAudio[i].source = source;
       const gainNode = context.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
@@ -606,6 +603,7 @@ class App extends Component {
       source.connect(gainNode);
       gainNode.connect(shifter.node);
     }
+
 
   if (!offline) {
     const masterGainNode = context.createGain();
@@ -623,6 +621,7 @@ class App extends Component {
       context.startRendering();
     }
 
+    /*
     this.inputAudio[0].source.onended = function(e) {
       console.log('source 0 onended');
       if (this.state.playingAt < timeB) { 
@@ -631,6 +630,7 @@ class App extends Component {
         playingAt: this.state.timeA});
       }
     }.bind(this);
+    */
 
     shifter.onUpdate = function(val) { 
       this.setState({playingAt: timeA + val});
