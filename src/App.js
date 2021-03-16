@@ -594,7 +594,11 @@ class App extends Component {
     for (let i=0; i < this.inputAudio.length; i++){
 
       const source = context.createBufferSource();
+      if (i === 0)
         source.buffer = this.addZeros(context,this.inputAudio[i].data);
+      else
+        source.buffer = this.inputAudio[i].data;
+
         this.inputAudio[i].source = source;
       const gainNode = context.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
