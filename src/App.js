@@ -540,7 +540,7 @@ class App extends Component {
     if (offline){
       context = new OfflineAudioContext (
         channels,
-        nOutputFrames + 10*sampleRate, // add extra 10 second
+        nOutputFrames*1.1, // add extra 10%
         sampleRate 
       );
       await this.loadModule (context, 'worklet/bundle.js');
@@ -702,7 +702,7 @@ class App extends Component {
     console.log('addZeros');
     const output = context.createBuffer(
       input.numberOfChannels, 
-      input.length*2 + 10*input.sampleRate, // extra 10 seconds
+      input.length*2*1.05, // extra 5%
       input.sampleRate
     ); // additional 5 sec
 
