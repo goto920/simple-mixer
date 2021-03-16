@@ -123,7 +123,7 @@ const noop = function () {
   return;
 };
 
-class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
+class MySoundTouchProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super(); //    super(options);
 
@@ -203,6 +203,13 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
           });
           break;
 
+        /*
+                case 'getRecordedSamples':
+                  this.port.postMessage({
+                    status: 'OK', args: [command, this.recordedSamples]});
+                break;
+        */
+
         default:
       } // end switch
 
@@ -211,24 +218,14 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
   } // end messageProcessor()
 
 
-  async stop() {
-    console.log(this.name, '.stop() recording', this.options.recording);
-    this.process = null; // "return null" does not work on Firefox
-
-    await this.updatePlayingAt();
-    console.log(this.name, 'updatePlayingAt sent');
-    if (this.options.recording) console.log(this.name, 'recordedSamples', this.recordedSamples[0].length, 'nInputFrames', this.options.nInputFrames);
-
-    try {
-      await this.port.postMessage({
-        command: 'End',
-        args: [this.recordedSamples]
-      });
-    } catch (e) {
-      console.log(this.name, e);
-    }
-
-    console.log(this.name, '(fake) Worklet --> Node: End');
+  stop() {
+    console.log(this.name, '.stop()');
+    this.process = null;
+    this.port.postMessage({
+      command: 'End',
+      args: [this.recordedSamples]
+    });
+    console.log(this.name, 'Worklet --> Node', command);
   }
 
   updatePlayingAt() {
@@ -264,7 +261,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
     this.playingAt = this.nVirtualOutputFrames / this.options.sampleRate;
 
     if (this.playingAt - this.lastPlayingAt >= this.options.updateInterval) {
-      this.updatePlayingAt();
+      this.updatePlayingAt(this.playingAt);
       this.lastPlayingAt = this.playingAt;
     }
 
@@ -282,7 +279,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
       const input = inputBuffer[channel];
       const output = outputBuffer[channel];
       output.set(input);
-      if (this.options.recording) for (let i = 0; i < output.length; i++) this.recordedSamples[channel].push(input[i]);
+      if (this.recording) for (let i = 0; i < output.length; i++) this.recordedSamples[channel].push(input[i]);
     }
   } // End passThrough()
 
@@ -322,7 +319,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
 }
 
 ;
-registerProcessor('my-soundtouch-processor', MySoundTouchWorkletProcessor);
+registerProcessor('my-soundtouch-processor', MySoundTouchProcessor);
 
 },{"./MyFilter-modified":1,"./soundtouch-modified":3}],3:[function(require,module,exports){
 "use strict";

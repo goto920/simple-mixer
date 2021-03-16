@@ -2,11 +2,13 @@ import {saveAs} from 'file-saver';
 import * as toWav from 'audiobuffer-to-wav';
 
 const noop = function() {return;}
-// const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
+const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
 
 class MyPitchShifterWorkletNode extends AudioWorkletNode {
   constructor(context,workletName, options){
     super(context, workletName, options);
+
+    this.name = this.constructor.name;
 
     // this.context = context; // already in super class
     this.recording = options.processorOptions.recording;
@@ -43,25 +45,25 @@ get node(){ return this;} // for compatibility
     return this._recordedBuffer;
   }
 
-  stop(){
-    console.log('MySoundTouchnode.stop()');
-    if (this.recording){
-      console.log('Node --> worklet getRecordedSamples');
-      this.port.postMessage({command: 'getRecordedSamples', args: []});
-    }
+  async stop(){
+    console.log(this.name, '.stop()');
     this.disconnect();
+    // await this._recordedBuffer is filled
+    console.log(this.name,'sleep begin');
+    await sleep(3000); // sleep in msec
+    console.log(this.name,'sleep end');
     this._onEnd(this._recordedBuffer);
   }
 
   messageProcessor(e){
-    // console.log('Node Recvd', e.data);
     if(e.data.command){
       const {command,args} = e.data;
+      console.log(this.name, 'recvd', command);
       switch(command) {
         case 'End':
-          console.log ('Node: got recordedSamples from worklet');
           this.recordedSamples = args[0]; 
           if (this.recording) this.createRecordedBuffer();
+          console.log (this.name, 'Worklet end. recordedSamples');
           this.stop();
         break;
         case 'update' : 
@@ -85,6 +87,10 @@ get node(){ return this;} // for compatibility
 
   exportToFile (filename){
     if (!this.recording) return;
+    if (!this._recordedBuffer){
+      console.log(this.name,'recordedBuffer is null! Cannot export');
+      return;
+    }
 
     const blob = new Blob([toWav(this._recordedBuffer)], 
        {type: 'audio/vnd.wav'});
@@ -94,11 +100,12 @@ get node(){ return this;} // for compatibility
   } // end exportToFile()
 
   createRecordedBuffer() {
-    console.log ('output from worklet', 
-      this.recordedSamples[0].length);
+    if (!this.recordedSamples) {
+      console.log (this.name,'this.recordedBuffer empty') 
+      return;
+    }
 
     if (this.recordedSamples[0].length === 0) return null;
-
 
     this._recordedBuffer = this.context.createBuffer(
       this.recordedSamples.length, // channels
@@ -111,7 +118,7 @@ get node(){ return this;} // for compatibility
     left.set(this.recordedSamples[0]);
     right.set(this.recordedSamples[1]);
 
-    console.log('createRecordedBuffer done');
+    console.log(this.name,'createRecordedBuffer done');
     return this._recordedBuffer;
 
   } // End createRecordedBuffer

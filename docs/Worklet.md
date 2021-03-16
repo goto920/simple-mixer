@@ -1,8 +1,12 @@
-# Files for AudioWorklet
+# Files for AudioWorklet (public/worklet/src/)
+
+- public/ is the document root for Node.js (React) App
+- Note that a program using worklet should be served by an HTTPS server.
+- Only local host can load worklets with "npm start"
 
 ## MySoundTouchWorklet.js
 
-AudioWorklet (process() and message handling)
+AudioWorkletProcessor (process() and handles messages between AudioWorkletNode)
 
 ```
 import MyFilter from './MyFilter-modified';
@@ -15,7 +19,7 @@ Two impored files are in the same directory.
 
 Almost the same: src/MyFilter.js
 
-Only the import line below is modified
+Only the import line below is modified.
 
 ```
 // import { SimpleFilter } from 'soundtouchjs';
@@ -28,7 +32,7 @@ Original soundtouch.js is
  node_modules/soundtouchjs/dist/soundtouch.js
 
 
-The file is copied and the last "export" line modified 
+The file is copied and the last "export" line modified. 
 
 ```
 // export { AbstractFifoSamplePipe, 
@@ -47,8 +51,9 @@ in the main program.
   npm install browser-resolve --save-dev
 ```
 
-Output file name is arbitorary and used in addModule().
+Output file name is arbitorary. In App.js addModule(worklet/bundle.js).
 
 ```
-  browserify MySoundTouchWorklet.js -p esmify > bundle.js
+  in public/worklet/src/
+  browserify MySoundTouchWorklet.js -p esmify > ../bundle.js
 ```

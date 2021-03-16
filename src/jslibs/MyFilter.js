@@ -18,7 +18,7 @@
 
  */
 
-import {SimpleFilter} from 'soundtouchjs'; 
+import { SimpleFilter } from 'soundtouchjs'; 
 
 const noop = function () {return;}
 
@@ -35,12 +35,14 @@ export default class MyFilter extends SimpleFilter {
 
 /* new method to put samples from e.inputBuffer in onaudioprocess */
   putSource(source){ 
+    //console.log('putSource');
     for (let i = 0; i < source.length; i++) 
        this.sourceSound.push(source[i]);
   } // LR interleaved
 
 /* new method replaces getWebAudioNode.extract() */
   extractSource(outSamples, numFramesReq, frameOffset = 0){
+    // console.log('extractSource');
    
     let numFramesExtracted = 0;
     if (this.sourceSound.length < numFramesReq*2) {

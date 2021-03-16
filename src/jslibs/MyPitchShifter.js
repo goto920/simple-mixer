@@ -28,7 +28,6 @@ const noop = function() {return;}
 export default class MyPitchShifter {
   constructor(context, numOfInputFrames, bufferSize, 
       record = false, bypass = false){
-
     console.log('new MyPitchShifter instance');
     this.context = context;
     this.bufferSize = bufferSize;
@@ -41,7 +40,7 @@ export default class MyPitchShifter {
     this._filter = new MyFilter(this._soundtouch, noop); 
     this._onEnd = noop;
     this._onUpdate = noop;
-    this._onUpdateInterval = 0.5;
+    this._updateInterval = 0.5;
 
     this._node = context.createScriptProcessor(bufferSize,2,2);
     this._node.onaudioprocess = this.onaudioprocess.bind(this);
@@ -54,7 +53,8 @@ export default class MyPitchShifter {
     this.inSamples  = new Float32Array(bufferSize*2);
     this.sampleRate = context.sampleRate; 
     this.nInputFrames = 0;
-    // this.moreInput = true;
+
+   // this.process = this.process.bind(this);
 
   }
 
@@ -80,8 +80,8 @@ export default class MyPitchShifter {
 
   set onEnd(func){ this._onEnd = func; }
   set onUpdate(func){ this._onUpdate = func; }
-  set onUpdateInterval(val){ this._onUpdateInterval = val;}
-  get onUpdateInterval(){ return this._onUpdateInterval;}
+  set updateInterval(val){ this._updateInterval = val;}
+  get updateInterval(){ return this._updateInterval;}
 
   stop(){ 
     if (this._node.onaudioprocess) {
@@ -110,38 +110,39 @@ export default class MyPitchShifter {
     // Typedarray.set(array[, offset])
 
     this._recordedBuffer = outputBuffer;
-    // console.log('this._recordedBuffer len = ', this._recordedBuffer.length);
 
   } // end createProcessedBuffer()
 
   onaudioprocess(e){
+    // console.log('onaudioprocess()');
 
-   if (this.bypass) { // pass through for test
-     if (this._nVirtualOutputFrames <= this._totalInputFrames){
-       this.passThrough(e.inputBuffer,e.outputBuffer); // through for test
-       this._nVirtualOutputFrames += e.outputBuffer.length;
-     } else this.stop();
-   } else {
-     if (this._nVirtualOutputFrames <= this._totalInputFrames){
-       const nOutputFrames = this.process(e.inputBuffer,e.outputBuffer);
-       this._nVirtualOutputFrames += nOutputFrames*this._soundtouch.tempo;
-     } else this.stop();
-   }
+    if (this.bypass) { // pass through for test
+      if (this._nVirtualOutputFrames <= this._totalInputFrames){
+        this.passThrough(e.inputBuffer,e.outputBuffer); // through for test
+        this._nVirtualOutputFrames += e.outputBuffer.length;
+      } else this.stop();
+    } else {
+      if (this._nVirtualOutputFrames <= this._totalInputFrames){
+        const nOutputFrames = this.process(e.inputBuffer,e.outputBuffer);
+        this._nVirtualOutputFrames += nOutputFrames*this._soundtouch.tempo;
+      } else this.stop();
+    }
 
    this._playingAt = this._nVirtualOutputFrames/this.sampleRate;
 
-   if (this.playingAt - this.lastPlayingAt >= this._onUpdateInterval) {
+   if (this.playingAt - this.lastPlayingAt >= this._updateInterval) {
       this._onUpdate(this._playingAt);
       this.lastPlayingAt = this._playingAt;
    }
 
    this.nInputFrames += e.inputBuffer.length; 
 
+    return true;
   }
 
   process(inputBuffer,outputBuffer) { // using soundtouchjs 
+    // console.log('MyPitchShifter process');
     // input part
-
     const leftIn = inputBuffer.getChannelData(0);
     const rightIn = inputBuffer.getChannelData(1);
     const inSamples = this.inSamples; // LR Interleave
