@@ -89,6 +89,7 @@ export default class MyPitchShifter {
       this._node.onaudioprocess = null; 
       this._node.disconnect();
       if (this._recordedBuffer === null) this.createProcessedBuffer();
+      this._onUpdate(this._playingAt);
       this._onEnd(this._recordedBuffer); 
     }
   }
