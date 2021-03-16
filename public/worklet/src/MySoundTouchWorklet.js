@@ -104,32 +104,33 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
             status: 'OK', args: [command, this.updateInterval]});
         break;
 
-/*
-        case 'getRecordedSamples':
-          this.port.postMessage({
-            status: 'OK', args: [command, this.recordedSamples]});
-        break;
-*/
         default:
       } // end switch
     } // end if (command)
 
   } // end messageProcessor()
 
-  stop() {
-    console.log (this.name, '.stop()');
-    this.updatePlayingAt();
-    // this.process = null;
-    if (this.recordedSamples)
-      this.port.postMessage({ command: 'End', args: [this.recordedSamples]});
-    else 
-      this.port.postMessage({ command: 'End', args: []});
-    console.log (this.name, 'Worklet --> Node: End', this.recordedSamples);
+  async stop() {
+    console.log (this.name, '.stop() recording', this.options.recording);
+    this.process = null; // "return null" does not work on Firefox
+    await this.updatePlayingAt();
+    console.log (this.name, 'updatePlayingAt sent');
+
+    if (this.options.recording)
+      console.log (this.name, 'recordedSamples', 
+        this.recordedSamples[0].length, 'nInputFrames', 
+        this.options.nInputFrames);
+  
+    try {
+       await this.port.postMessage({ 
+        command: 'End', args: [this.recordedSamples]});
+    } catch (e) { console.log(this.name, e);}
+
+    console.log (this.name, '(fake) Worklet --> Node: End');
   }
 
   updatePlayingAt(){
-    this.port.postMessage({ command: 'update', 
-      args: [this.playingAt] });
+    this.port.postMessage({ command: 'update', args: [this.playingAt] });
   }
 
   process(inputs,outputs,parameters){
@@ -150,7 +151,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
    this.playingAt = this.nVirtualOutputFrames/this.options.sampleRate;
 
    if (this.playingAt - this.lastPlayingAt >= this.options.updateInterval) {
-      this.updatePlayingAt(this.playingAt);
+      this.updatePlayingAt();
       this.lastPlayingAt = this.playingAt;
    }
 
@@ -170,7 +171,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
       const output = outputBuffer[channel];
       output.set(input); 
 
-      if (this.recording) 
+      if (this.options.recording) 
         for (let i = 0; i < output.length; i++) 
           this.recordedSamples[channel].push(input[i]);
     }

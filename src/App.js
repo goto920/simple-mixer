@@ -563,7 +563,8 @@ class App extends Component {
     };
 
     let shifter = null;
-    if (!this.state.useAudioWorklet) {
+    if (!this.state.useAudioWorklet || offline) { 
+        // Offline worklet not working perfectly yet
       shifter = new MyPitchShifter( context, nInputFrames, 
         4096, recording, this.state.bypass); // ScriptProcessorNode
       shifter.updateInterval = updateInterval;
@@ -622,7 +623,8 @@ class App extends Component {
       console.log('source 0 onended');
       if (this.state.playingAt < timeB) { 
         shifter.stop(); 
-        this.setState({isPlaying: false, playButtonNextAction: 'Play'});
+        this.setState({isPlaying: false, playButtonNextAction: 'Play',
+        playingAt: this.state.timeA});
       }
     }.bind(this);
 
@@ -644,6 +646,7 @@ class App extends Component {
 
       for (let i=0; i < this.inputAudio.length; i++)
         this.inputAudio[i].gainNode.disconnect();
+
       this.setState({isPlaying: false});
 
       if (exporter === 'exportFile' ) {
@@ -682,7 +685,7 @@ class App extends Component {
 
       try {
         await context.audioWorklet.addModule(filename);
-        console.log(name, 'AudioWorklet loaded');
+        //console.log(name, 'AudioWorklet loaded');
       } catch(e) {
         console.log(e, name, 'AudioWorklet load failed');
         return null
@@ -695,7 +698,7 @@ class App extends Component {
     console.log('addZeros');
     const output = context.createBuffer(
       input.numberOfChannels, 
-      input.length*2 + 5*input.sampleRate, 
+      input.length*2 + 10*input.sampleRate, // extra 10 seconds
       input.sampleRate
     ); // additional 5 sec
 

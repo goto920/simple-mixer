@@ -47,12 +47,6 @@ get node(){ return this;} // for compatibility
 
   async stop(){
     console.log(this.name, '.stop()');
-/*
-    if (this.recording){
-      console.log('Node --> worklet getRecordedSamples');
-      this.port.postMessage({command: 'getRecordedSamples', args: []});
-    }
-*/
     this.disconnect();
     // await this._recordedBuffer is filled
     console.log(this.name,'sleep begin');
@@ -69,8 +63,7 @@ get node(){ return this;} // for compatibility
         case 'End':
           this.recordedSamples = args[0]; 
           if (this.recording) this.createRecordedBuffer();
-          console.log (this.name, 'Worklet end. recordedSamples', 
-          this.recordedSamples[0].length);
+          console.log (this.name, 'Worklet end. recordedSamples');
           this.stop();
         break;
         case 'update' : 
@@ -107,8 +100,10 @@ get node(){ return this;} // for compatibility
   } // end exportToFile()
 
   createRecordedBuffer() {
-    console.log (this.name,'output from worklet', 
-      this.recordedSamples[0].length);
+    if (!this.recordedSamples) {
+      console.log (this.name,'this.recordedBuffer empty') 
+      return;
+    }
 
     if (this.recordedSamples[0].length === 0) return null;
 
