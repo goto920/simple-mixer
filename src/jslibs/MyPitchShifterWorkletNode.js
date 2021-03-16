@@ -18,6 +18,8 @@ class MyPitchShifterWorkletNode extends AudioWorkletNode {
     this._onEnd = noop;
     this.recordedSamples = null;
     this._recordedBuffer = null;
+   
+    this.running = true;
 
   } // End constructor()
 
@@ -46,29 +48,43 @@ get node(){ return this;} // for compatibility
   }
 
   async stop(){
+    if (!this.running) return;
+
     console.log(this.name, '.stop()');
+    await this.port.postMessage({command: 'stop', args: []});
+
     this.disconnect();
     // await this._recordedBuffer is filled
+
     console.log(this.name,'sleep begin');
     await sleep(3000); // sleep in msec
     console.log(this.name,'sleep end');
+
     this._onEnd(this._recordedBuffer);
+
+    this.running = false;
   }
 
   messageProcessor(e){
     if(e.data.command){
       const {command,args} = e.data;
-      console.log(this.name, 'recvd', command);
+      // console.log(this.name, 'recvd', command);
       switch(command) {
         case 'End':
+          console.log(this.name, 'recvd', command);
           this.recordedSamples = args[0]; 
+          if (this.recordedSamples)
+             console.log (this.name, 'worklet stopped. recordedSamples');
+          else
+             console.log (this.name, 'worklet stopped. NO recordedSamples');
           if (this.recording) this.createRecordedBuffer();
-          console.log (this.name, 'Worklet end. recordedSamples');
+
           this.stop();
         break;
         case 'update' : 
           this._onUpdate(args[0]); // this.playingAt = args[0];
         break;
+
         default:
       }
       return;

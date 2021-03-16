@@ -433,13 +433,15 @@ class App extends Component {
       if (this.shifter) this.shifter.stop();
       if (this.mixedSource) this.mixedSource.stop();
 
-      this.setState ({loop: false, playButtonNextAction: 'Play', playingAt: 
-         this.state.timeA})
+      this.setState ({loop: false, playButtonNextAction: 'Play', 
+          playingAt: this.state.timeA})
+
       return;
     }    
 
     if (event.target.name === 'exportFile' 
        || event.target.name === 'playMix'){
+
       if (this.inputAudio.length === 0 || this.state.isPlaying) return;
 
       const recording = true;
@@ -542,7 +544,7 @@ class App extends Component {
     if (offline){
       context = new OfflineAudioContext (
         channels,
-        nOutputFrames + 10*sampleRate, // add extra 10 second
+        nOutputFrames*1.1, // add 10%
         sampleRate 
       );
       await this.loadModule (context, 'worklet/bundle.js');
@@ -566,7 +568,8 @@ class App extends Component {
     };
 
     let shifter = null;
-    if (!this.state.useAudioWorklet || offline) { 
+    // if (!this.state.useAudioWorklet || offline) { 
+    if (!this.state.useAudioWorklet) { 
         // Offline worklet not working perfectly yet
       shifter = new MyPitchShifter( context, nInputFrames, 
         4096, recording, this.state.bypass); // ScriptProcessorNode
@@ -594,12 +597,19 @@ class App extends Component {
     shifter.tempo = this.state.playSpeed;
     shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
 
+/*
+    const dummySourceNode = context.createOscillator();
+    const zeroGain = context.createGain(); zeroGain.gain.value = 0.2;
+    dummySourceNode.connect(zeroGain); zeroGain.connect(shifter); 
+*/
+
     for (let i=0; i < this.inputAudio.length; i++){
 
       const source = context.createBufferSource();
        if (i === 0)
          source.buffer = this.addZeros(context,this.inputAudio[i].data);
-       else source.buffer = this.inputAudio[i].data;
+       else 
+        source.buffer = this.inputAudio[i].data;
         this.inputAudio[i].source = source;
       const gainNode = context.createGain();
         gainNode.gain.value = this.state.gains[i]/100.0;
@@ -616,22 +626,23 @@ class App extends Component {
     masterGainNode.connect(context.destination);
   } else shifter.node.connect(context.destination);
 
+
+    const begin = context.currentTime + delay;
     for (let i=0; i < this.inputAudio.length; i++)
-      this.inputAudio[i].source.start(context.currentTime + delay, timeA);
+      this.inputAudio[i].source.start(begin, timeA);
+
+    // dummySourceNode.start(begin, timeA);
 
     if (offline) {
       console.log('startRendering');
       context.startRendering();
     }
 
+/*
     this.inputAudio[0].source.onended = function(e) {
-      console.log('source 0 onended');
-      if (this.state.playingAt < timeB) { 
-        shifter.stop(); 
-        this.setState({isPlaying: false, playButtonNextAction: 'Play',
-        playingAt: this.state.timeA});
-      }
+      console.log('source 0 onended At', this.state.playingAt);
     }.bind(this);
+*/
 
     shifter.onUpdate = function(val) { 
       this.setState({playingAt: timeA + val});
@@ -642,6 +653,7 @@ class App extends Component {
         console.log( 
          'Offline render complete (data is useless though) length = ',
           e.renderedBuffer.length);
+        // shifter.stop();
       }
     }
 
@@ -703,7 +715,7 @@ class App extends Component {
     console.log('addZeros');
     const output = context.createBuffer(
       input.numberOfChannels, 
-      input.length*2 + 10*input.sampleRate, // extra 10 seconds
+      input.length*2*1.05, // extra 5%
       input.sampleRate
     ); // additional 5 sec
 
