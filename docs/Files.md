@@ -2,10 +2,10 @@
 
 ```
 src
-├── App.css
+├── App.css (slightly customized)
 ├── App.js  (* main program component)
-├── index.css
-├── index.js
+├── index.css (React default)
+├── index.js (Javascript entry point)
 ├── jslibs
 │   ├── MyFilter.js (* soundtouchJS Filter for the ScriptProcessor)
 │   ├── MyPitchShifter.js (*soundtouchJS ScriptProcessor)
@@ -14,7 +14,7 @@ src
 │   ├── SpeedPitchControls.js (UI component)
 │   ├── TrackGainSlider.js (UI component)
 │   └── TrackGainSliderList.js (List of TrackGainSlider)
-├── messages.json
+├── messages.json (English/Japanese messages for Tooltips and other strings)
 ├── reportWebVitals.js
 ├── service-worker.js
 └── serviceWorkerRegistration.js
