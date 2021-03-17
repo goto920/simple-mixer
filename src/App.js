@@ -4,28 +4,29 @@
 
    Based on soundtouchjs/src/PitchShifter.js, SimpleFilter.js
 
-   Modified for use as intermediate ScriptProcessorNode.
-   Note: Output does not work for OfflineAudioContext.
+   AudioWorkletNode and AudioWorkletProcessor is used if available.
 
-   1) PitchShifter ---> MyPitchShifter (minimum code)
-                     includes ScriptProcessorNode
-       or --> MyPitchShifternode (AudioWorkletNode)
-
-   2) MyFilter extends SimpleFilter
-
-   Pitch modification and slow down/speed up work.
-   Slow down only for real-time playback.
-   Fast real-time playback is impossible by nature.
-
-   3) AudioWorklet is in public/worklet/ 
+   AudioWorkletProcessor code is in public/worklet/ 
       (public is the document root.)
+
+   Status:
+     ScriptProcessorNode (Chrome, Firefox, Safari)
+       -- AudioContext, OfflineAudioContext (e.renderedBuffer is NOT usable)
+
+     AudioWorkletNode/AudioWorkletProcessor (Chrome, Firefox)
+       -- AudioContext, OfflineAudioContext (e.renderedBuffer is usable)
+
+     Safari does not implement AudioWorklet at all.
+     This app is quite memory intensive and may not work on smartphones.
+
+   See details in docs/ and demo page.
 
  */
 
 import { Component }  from 'react';
 import './App.css';
 import MyPitchShifter from './jslibs/MyPitchShifter'; // soundtouchJS
-import MyPitchShifterWorkletNode from './jslibs/MyPitchShifterWorkletNode';
+
 // UI Components
 import PlayButton from './jslibs/PlayButton';
 import SpeedPitchControls from './jslibs/SpeedPitchControls';
@@ -44,12 +45,9 @@ import PlayCircleFilledWhiteIcon
 import NotInterestedIcon from '@material-ui/icons/NotInterested';
 import MoodIcon from '@material-ui/icons/Mood';
 import MicIcon from '@material-ui/icons/Mic';
-// import { AudioContext, OfflineAudioContext }  from 'standardized-audio-context';
 
 // get subversion string 
 const version = packageJSON.subversion;
-
-// alert(navigator.userAgent);
 
 // switch languages
 let defaultLang = 'en';
@@ -60,43 +58,35 @@ if (window.navigator.language.slice(0,2) === 'ja') {
   m = messages.ja;
 }
 
-/*
-let iOS = false;
-if(  navigator.userAgent.match(/iPhone/i) 
-  || navigator.userAgent.match(/iPod/i)
-  || navigator.userAgent.match(/iPad/i)){
-  iOS = true;
-}
-*/
+// Still AudioContext may be webkitAudioContext on some browsers
+const AudioContext = window.AudioContext || window.AudioContext;
 
-// AudioWorklet check with OfflineAudioContext (from Google Labs example)
+// OfflineAudioContext (Still webkitOfflineAudioContext on Safari) 
+const OfflineAudioContext 
+  = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+
+// Is OfflineAudioContext available? (probably yes)
 let tmp = false;
-if (OfflineAudioContext) {
-  tmp = true; 
-  console.log('OfflineAudioContext available');
- } else tmp = false;
+if (OfflineAudioContext) { tmp = true; }
 const isOfflineAudioContext = tmp;
+console.log('OfflineAudioContext available', isOfflineAudioContext);
 
-let isAudioWorkletNode = false;
+// Is AudioWorkletNode available
+let isAudioWorkletNode;
+let AudioWorkletNode = window.AudioWorkletNode || window.webkitAudioWorkletNode;
+if (AudioWorkletNode) isAudioWorkletNode = true;
 
-let AudioWorkletNode 
-      = window.AudioWorkletNode || window.webkitAudioWorkletNode;
-
-if (AudioWorkletNode) {
-  isAudioWorkletNode = true;
-  console.log('AudioWorkletNode available');
-}
-
+// Is AudioWorklet available for AudioContext?
 let context = new AudioContext(); 
 let isAudioWorklet = false;
-if (context.audioWorklet && 
-    typeof context.audioWorklet.addModule === 'function'){
-  isAudioWorklet = true;
-  console.log('Audiocontext.AudioWorklet available');
-} 
+if (context.audioWorklet && context.audioWorklet.addModule &&
+  typeof context.audioWorklet.addModule === 'function') isAudioWorklet = true;
 context.close();
 
 const isAudioWorkletAvailable = (isAudioWorkletNode & isAudioWorklet);
+console.log('AudioWorklet available?', isAudioWorkletAvailable);
+
+// Conditional dynamic import only if AudioWorklet is available
 
 class App extends Component {
 
@@ -326,8 +316,10 @@ class App extends Component {
       console.log('AudioContext');
       try {
         this.audioCtx = new AudioContext();
-        await this.loadModule(this.audioCtx,'worklet/bundle.js');
-        console.log('AudioContext worklet module loaded');
+        if (isAudioWorkletAvailable) {
+          await this.loadModule(this.audioCtx,'worklet/bundle.js');
+          console.log('AudioContext worklet module loaded');
+        }
       } catch (error) {
         console.log(error);
       }
@@ -547,8 +539,10 @@ class App extends Component {
         nOutputFrames*1.1, // add 10%
         sampleRate 
       );
-      await this.loadModule (context, 'worklet/bundle.js');
-      console.log('OfflineAudioContext Worklet module loaded');
+      if (this.state.useAudioWorklet) {
+        await this.loadModule (context, 'worklet/bundle.js');
+        console.log('OfflineAudioContext Worklet module loaded');
+      }
       if (OfflineAudioContext.suspend) context.suspend();
     } else context = this.audioCtx;
 
@@ -571,15 +565,17 @@ class App extends Component {
     if (!this.state.useAudioWorklet) { 
         // Offline worklet not working perfectly yet
       shifter = new MyPitchShifter( context, nInputFrames, 
-        // 4096, recording, this.state.bypass); // ScriptProcessorNode
         4096, recording, this.state.bypass); // ScriptProcessorNode
       shifter.updateInterval = updateInterval;
-    } else { // load the same worklet for OfflineAudioContext
+    } else { // Use worklet
       try {
-        shifter = new MyPitchShifterWorkletNode( context, 
-          'my-soundtouch-processor', options); // ScriptProcessorNode
+        // Dynamic import to avoid "Safari misses AudioWorkletnode"
+        const module
+          = await import('./jslibs/MyPitchShifterWorkletNode');
+        shifter = new module.default(context, 
+          'my-soundtouch-processor', options); 
+           console.log('AudioWorkletNode functional');
         shifter.updateInterval = updateInterval;
-        console.log('AudioWorkletNode functional');
       } catch (err) { 
         console.log(err);
         shifter = null;
