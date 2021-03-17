@@ -557,10 +557,10 @@ class App extends Component {
     let updateInterval = 1.0;
     if (offline) updateInterval = 10.0;
 
-    const options = {
+    const options = { // For worklet 
       processorOptions: {
         bypass: this.state.bypass,
-        recording: recording,
+        recording: false, // recording is done in OfflineAudioContext
         nInputFrames: nInputFrames, 
         updateInterval: updateInterval, 
         sampleRate: sampleRate
@@ -568,10 +568,10 @@ class App extends Component {
     };
 
     let shifter = null;
-    // if (!this.state.useAudioWorklet || offline) { 
     if (!this.state.useAudioWorklet) { 
         // Offline worklet not working perfectly yet
       shifter = new MyPitchShifter( context, nInputFrames, 
+        // 4096, recording, this.state.bypass); // ScriptProcessorNode
         4096, recording, this.state.bypass); // ScriptProcessorNode
       shifter.updateInterval = updateInterval;
     } else { // load the same worklet for OfflineAudioContext
@@ -638,11 +638,9 @@ class App extends Component {
       context.startRendering();
     }
 
-/*
     this.inputAudio[0].source.onended = function(e) {
       console.log('source 0 onended At', this.state.playingAt);
     }.bind(this);
-*/
 
     shifter.onUpdate = function(val) { 
       this.setState({playingAt: timeA + val});
@@ -653,8 +651,18 @@ class App extends Component {
         console.log( 
          'Offline render complete (data is useless though) length = ',
           e.renderedBuffer.length);
-        // shifter.stop();
-      }
+
+        if (this.state.useAudioWorklet){
+          if (exporter === 'exportFile') {
+            console.log('exportFile in oncomlete'); 
+            shifter.exportToFile('mix_' + Date.now() + '.wav', 
+           e.renderedBuffer);
+          } else if (exporter === 'playMix') {
+            console.log('playMix in oncomlete'); 
+            this.playSource(e.renderedBuffer);
+          } else console.log('exporter unknown: ', exporter);
+         }
+      }.bind(this);
     }
 
     shifter.onEnd = function(recordedBuffer) { 
@@ -666,29 +674,12 @@ class App extends Component {
 
       this.setState({isPlaying: false});
 
-      if (exporter === 'exportFile' ) {
-        console.log('exportFile', recordedBuffer.length);
-        shifter.exportToFile('mix_' + Date.now() + '.wav');
-        this.setState({isPlaying: false}); // audioBuffer is in the shifter
-      } else if (exporter === 'playMix'){
-        console.log('playMix', recordedBuffer.length);
-        const context = this.audioCtx;
-        this.setState({isPlaying: true, playButtonNextAction: 'Pause'});
-        const source = context.createBufferSource();
-          this.mixedSource = source;
-          source.buffer = recordedBuffer;
-         const masterGainNode = context.createGain();
-           this.masterGainNode = masterGainNode;
-           masterGainNode.gain.value = this.state.masterGain/100;
-         source.connect(this.masterGainNode);
-         masterGainNode.connect(context.destination);
-         source.start();
-
-         source.onended = function(e) {
-           this.mixedSource = null;
-           this.setState({isPlaying: false});
-         }.bind(this);
-
+      if (!this.state.useAudioWorklet) {
+        if (exporter === 'exportFile' ) {
+         shifter.exportToFile('mix_' + Date.now() + '.wav');
+          this.setState({isPlaying: false}); // audioBuffer is in the shifter
+        } else if (exporter === 'playMix')
+          this.playSource(recordedBuffer);
       }
 
    }.bind(this);
@@ -727,6 +718,28 @@ class App extends Component {
 
     return output;
   } // End addZeros()
+
+
+  playSource(audioBuffer){ 
+     if (audioBuffer === null) {console.log('audioBuffer null'); return;}
+
+     const context = this.audioCtx;
+     this.setState({isPlaying: true, playButtonNextAction: 'Pause'});
+     const source = context.createBufferSource();
+     this.mixedSource = source;
+     source.buffer = audioBuffer;
+     const masterGainNode = context.createGain();
+       this.masterGainNode = masterGainNode;
+       masterGainNode.gain.value = this.state.masterGain/100;
+     source.connect(this.masterGainNode);
+       masterGainNode.connect(context.destination);
+     source.start();
+
+     source.onended = function(e) {
+       this.mixedSource = null;
+       this.setState({isPlaying: false});
+     }.bind(this);
+  }
 
 }; // end class
 
