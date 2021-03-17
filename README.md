@@ -17,7 +17,7 @@ Written with React and Web Audio API.
 
 SoundtouchJS works as an intermediate ScriptProcessorNode 
 either with AudioContext or OfflineAudioContext (NG for iOS).
-AudioWorklet does not work with OfflineAudioContext.
+AudioWorklet DOES work with OfflineAudioContext now (Mar. 17).
 File export function is implemented in ScriptProcessorNode and
 AudioWorkletNode.
 
@@ -178,10 +178,12 @@ shifter.onEnd = function () {
 
 /* e.renderedBuffer 
   should be the processed samples but actually it is collapsed.
+  Update: e.renderedBuffer is usable with OfflineAudioContext
 */
-// context.oncomplete = function(e) {
-//  console.log( 'Offline render complete length = ', e.renderedBuffer.length);
-// }
+context.oncomplete = function(e) {
+  console.log( 'Offline render complete length = ', e.renderedBuffer.length);
+  // export or play e.renderedBuffer
+}
 
 ```
 
@@ -189,4 +191,6 @@ shifter.onEnd = function () {
 - Realtime playback -- Slow down only (50 -- 100%) (Spec)
 - (Mar. 11) Voice recording with playback ==> Will think of this after other issues
 - (Mar. 11) Performance issues ==> Reduce UI rendering ==> testing
-- (Mar. 15) Working on docs
+- (Mar. 15) Working on docs ==> almost (Mar. 17)
+- (Mar. 17) worklet with OfflineAudioContext functional on Firefox and Chrome
+  - worklet branch only
