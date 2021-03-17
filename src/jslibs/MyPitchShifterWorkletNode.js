@@ -101,15 +101,15 @@ get node(){ return this;} // for compatibility
     }
   } // End messgeProcessor()
 
-  exportToFile (filename){
-    if (!this.recording) return;
-    if (!this._recordedBuffer){
-      console.log(this.name,'recordedBuffer is null! Cannot export');
-      return;
-    }
+  exportToFile (filename, audioBuffer = null){
 
-    const blob = new Blob([toWav(this._recordedBuffer)], 
-       {type: 'audio/vnd.wav'});
+    let output = null;
+    if (audioBuffer !== null) output = audioBuffer;
+    else if (this._recordedBuffer !== null)
+      output = this._recordBuffer; // use internal record
+    else {console.log ('output AudioBuffer is null'); return; }
+
+    const blob = new Blob([toWav(output)], {type: 'audio/vnd.wav'});
     saveAs(blob, filename);
 
     return;
