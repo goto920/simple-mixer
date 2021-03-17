@@ -247,7 +247,8 @@ async playAB(delay, timeA, timeB, recording = false,
         console.log( 
          'Offline render complete (data is useless though) length = ',
           e.renderedBuffer.length);
-      // e.renderBuffer is the recording if the content is OK but NG so far.
+      // e.renderBuffer is the recording 
+      // export or play e.renderedBuffer (AudioWorklet case)
       }
   }
 
@@ -258,11 +259,14 @@ async playAB(delay, timeA, timeB, recording = false,
 
     // disconnect all gainNode (connected to shifter)
 
-    // export function is in MyPitchShifter(Node)
+   // export or play the recording here for ScriptProcessor case
+   // In oncomplete(e) for worklet case 
+   if (!this.state.useAudioWorklet) {
     if (exporter === 'exportFile' ) 
       shifter.exportToFile('mix_' + Date.now() + '.wav') 
 
     if (exporter === 'playMix') // omit playback recordedBuffer
+    ...
  }.bind(this);
 
 ```

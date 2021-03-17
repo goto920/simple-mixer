@@ -11,10 +11,10 @@ and a copy of soundtouchjs/dist/soundtouch.js
 
 ```
 in App.js
-             onUpdate()   onEnd()
-                  ^        ^
-                  |        |
-           MyPitchShifterWorkletNode
+             onUpdate()   onEnd()      export or play (e.renderedBuffer)
+                  ^        ^                ^
+                  |        |                |
+           MyPitchShifterWorkletNode   oncomplete(e) 
                    ^ |
    source +        | |                 +-> context.destination 
           |        | |                 | 
