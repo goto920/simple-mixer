@@ -66,6 +66,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
     this.port.onmessage = this.messageProcessor.bind(this);
     this.process = this.process.bind(this);
     this.passThrough = this.passThrough.bind(this);
+    this.running = true;
 
   } // end constructor
 
@@ -73,7 +74,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
 
     if (event.data.command) {
       const {command,args} = event.data;
-
+      console.log(this.name, command);
       switch(command){
         case 'setTempo': 
           this.soundtouch.tempo = args[0];
@@ -103,6 +104,8 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
           this.port.postMessage({ 
             status: 'OK', args: [command, this.updateInterval]});
         break;
+     
+        case 'stop': this.stop(); break;
 
         default:
       } // end switch
@@ -111,7 +114,12 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
   } // end messageProcessor()
 
   async stop() {
-    console.log (this.name, '.stop() recording', this.options.recording);
+
+    if (!this.running) return;
+
+    this.running = false;
+
+    console.log (this.name, '.stop() with recording', this.options.recording);
     this.process = null; // "return null" does not work on Firefox
     await this.updatePlayingAt();
     console.log (this.name, 'updatePlayingAt sent');
@@ -126,7 +134,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
         command: 'End', args: [this.recordedSamples]});
     } catch (e) { console.log(this.name, e);}
 
-    console.log (this.name, '(fake) Worklet --> Node: End');
+    console.log (this.name, 'Worklet --> Node: End');
   }
 
   updatePlayingAt(){
@@ -140,12 +148,17 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
       if (this.nVirtualOutputFrames <= this.options.nInputFrames){
         this.passThrough(inputs[0],outputs[0]); // through for test
         this.nVirtualOutputFrames += outputs[0][0].length;
-      } else {this.stop(); return false;}
+      } else {
+        console.log(this.name, 'calling stop() at', this.playingAt); 
+          this.stop(); return false; }
+
     } else {
       if (this.nVirtualOutputFrames <= this.options.nInputFrames){
         const nOutputFrames = this.processFilter(inputs[0],outputs[0]);
         this.nVirtualOutputFrames += nOutputFrames*this.soundtouch.tempo;
-      } else {this.stop(); return false;}
+      } else {
+        console.log(this.name, 'calling stop() at', this.playingAt); 
+        this.stop(); return false; }
     }
 
    this.playingAt = this.nVirtualOutputFrames/this.options.sampleRate;

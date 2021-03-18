@@ -85,7 +85,7 @@ export default class MyPitchShifter {
 
   stop(){ 
     if (this._node.onaudioprocess) {
-      console.log('shifter stop');
+      console.log(this.name, 'shifter stop');
       this._node.onaudioprocess = null; 
       this._node.disconnect();
       if (this._recordedBuffer === null) this.createProcessedBuffer();

@@ -154,6 +154,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
     this.port.onmessage = this.messageProcessor.bind(this);
     this.process = this.process.bind(this);
     this.passThrough = this.passThrough.bind(this);
+    this.running = true;
   } // end constructor
 
 
@@ -163,6 +164,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
         command,
         args
       } = event.data;
+      console.log(this.name, command);
 
       switch (command) {
         case 'setTempo':
@@ -203,6 +205,10 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
           });
           break;
 
+        case 'stop':
+          this.stop();
+          break;
+
         default:
       } // end switch
 
@@ -212,7 +218,9 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
 
 
   async stop() {
-    console.log(this.name, '.stop() recording', this.options.recording);
+    if (!this.running) return;
+    this.running = false;
+    console.log(this.name, '.stop() with recording', this.options.recording);
     this.process = null; // "return null" does not work on Firefox
 
     await this.updatePlayingAt();
@@ -228,7 +236,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
       console.log(this.name, e);
     }
 
-    console.log(this.name, '(fake) Worklet --> Node: End');
+    console.log(this.name, 'Worklet --> Node: End');
   }
 
   updatePlayingAt() {
@@ -248,6 +256,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
 
         this.nVirtualOutputFrames += outputs[0][0].length;
       } else {
+        console.log(this.name, 'calling stop() at', this.playingAt);
         this.stop();
         return false;
       }
@@ -256,6 +265,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
         const nOutputFrames = this.processFilter(inputs[0], outputs[0]);
         this.nVirtualOutputFrames += nOutputFrames * this.soundtouch.tempo;
       } else {
+        console.log(this.name, 'calling stop() at', this.playingAt);
         this.stop();
         return false;
       }
