@@ -76,7 +76,7 @@ Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_3) AppleWebKit/537.36 (KHTML, like G
 (summary) isAudioWorkletAvailable:  online=true, offline=true
 ```
 
-## Android 7.0 ###
+## Android 7.0 (Sony SO-02H) ###
 
 ### Chrome ###
 
@@ -89,9 +89,9 @@ Mozilla/5.0 (Linux; Android 7.0; SO-02H) AppleWebKit/537.36 (KHTML, like Gecko) 
 (summary) isAudioWorkletAvailable:  online=true, offline=true
 ```
 
-## iOS 12.5.1 ###
+## iOS 12.5.1 (iPhone 6)###
 
-### mobile Safari (Sony SO-02H) ###
+### mobile Safari ###
 ```
 Mozilla/5.0 (iPhone; CPU iPhone OS 12_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.2 Mobile/15E148 Safari/604.1 
 {"isAudioContext":true,"isOfflineAudioContext":true,"isAudioWorkletNode":false,
@@ -101,7 +101,7 @@ Mozilla/5.0 (iPhone; CPU iPhone OS 12_5_1 like Mac OS X) AppleWebKit/605.1.15 (K
 (summary) isAudioWorkletAvailable: online=false, offline=false
 ```
 
-### mobile Chrome (iPhone 6) ###
+### mobile Chrome ###
 
 - Looks identical to mobile Safari
 
