@@ -194,3 +194,6 @@ context.oncomplete = function(e) {
 - (Mar. 15) Working on docs ==> almost (Mar. 17)
 - (Mar. 17) worklet with OfflineAudioContext functional on Firefox and Chrome
   - worklet branch only
+- (Mar. 18) Now works on Safari with ScriptProcessorNode
+  - AudioWorklet is not available on Safari
+  - worklet branch merged to main
