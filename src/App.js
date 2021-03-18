@@ -25,6 +25,7 @@
 
 import { Component }  from 'react';
 import './App.css';
+import checkAudioWorklet from './jslibs/checkAudioWorklet';
 import MyPitchShifter from './jslibs/MyPitchShifter'; // soundtouchJS
 
 // UI Components
@@ -58,33 +59,26 @@ if (window.navigator.language.slice(0,2) === 'ja') {
   m = messages.ja;
 }
 
-// Still AudioContext may be webkitAudioContext on some browsers
-const AudioContext = window.AudioContext || window.AudioContext;
 
-// OfflineAudioContext (Still webkitOfflineAudioContext on Safari) 
+// For Safari
+const AudioContext = window.AudioContext || window.webkitAudioContext;
 const OfflineAudioContext 
-  = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    = window.OfflineAudioContext || window.webkitOfflineAudioContext;
 
-// Is OfflineAudioContext available? (probably yes)
-let tmp = false;
-if (OfflineAudioContext) { tmp = true; }
-const isOfflineAudioContext = tmp;
-console.log('OfflineAudioContext available', isOfflineAudioContext);
+const result = checkAudioWorklet();
 
-// Is AudioWorkletNode available
-let isAudioWorkletNode;
-let AudioWorkletNode = window.AudioWorkletNode || window.webkitAudioWorkletNode;
-if (AudioWorkletNode) isAudioWorkletNode = true;
+const {isAudioContext, isOfflineAudioContext, isAudioWorkletNode,
+       isAudioWorklet, isAddModule, isOfflineAddModule,
+       isOfflineAudioWorklet } = result;
 
-// Is AudioWorklet available for AudioContext?
-let context = new AudioContext(); 
-let isAudioWorklet = false;
-if (context.audioWorklet && context.audioWorklet.addModule &&
-  typeof context.audioWorklet.addModule === 'function') isAudioWorklet = true;
-context.close();
+const isAudioWorkletAvailable = isAudioContext & isAudioWorkletNode 
+      & isAudioWorklet & isAddModule;
+const isOfflineAudioWorkletAvailable = isOfflineAudioContext 
+      & isAudioWorkletNode & isOfflineAudioWorklet & isOfflineAddModule;
 
-const isAudioWorkletAvailable = (isAudioWorkletNode & isAudioWorklet);
-console.log('AudioWorklet available?', isAudioWorkletAvailable);
+console.log('AudioWorklet available? :', 
+'online: ', isAudioWorkletAvailable ? 'true' : 'false',
+', offline: ', isOfflineAudioWorkletAvailable ? 'true' : 'false');
 
 // Conditional dynamic import only if AudioWorklet is available
 
@@ -314,8 +308,8 @@ class App extends Component {
     console.log('loadFiles');
     if (this.audioCtx === null) {
       console.log('AudioContext');
+      this.audioCtx = new AudioContext();
       try {
-        this.audioCtx = new AudioContext();
         if (isAudioWorkletAvailable) {
           await this.loadModule(this.audioCtx,'worklet/bundle.js');
           console.log('AudioContext worklet module loaded');
