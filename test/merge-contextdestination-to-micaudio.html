@@ -1,9 +1,15 @@
 <html>
 <head>
 <meta charset="utf-8">
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.9.7/dist/ffmpeg.min.js"
+crossorigin="anonymous">
+</script>
 </head>
 <body>
+Here
 <script>
+const { createFFmpeg } = FFmpeg;
+const ffmpeg = createFFmpeg();
 const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -46,7 +52,7 @@ let audioCtx = null;
 
 const stream2 = getWebAudioStream(); // PC audio
 console.log(stream2.getTracks()[0].getSettings());
-const stream = getMedia(constraints); // PC audio
+const stream = getMedia(constraints); // Mic
 
 // microphone
 async function getMedia(constraints) {
@@ -85,8 +91,9 @@ async function getMedia(constraints) {
 
     recorders[0].onstop = function(e) {
       console.log('mediarecorder.onstop', e);
-      console.log('chunks', chunks);
-      download(chunks);
+      console.log('chunks', chunks); // to see if mimeType defined
+      download(chunks, 'micAudio.webm');
+      // const result = toWav(chunks);
     }
 
     recorders[0].ondataavailable = function(e) {
@@ -95,8 +102,9 @@ async function getMedia(constraints) {
 
     recorders[1].onstop = function(e) {
       console.log('mediarecorder.onstop', e);
-      console.log('chunks', chunks2);
-      download(chunks2);
+      console.log('chunks2', chunks2);
+      download(chunks2, 'PCAudio.webm');
+      // const result = toWav(chunks2);
     }
 
     recorders[1].ondataavailable = function(e) {
@@ -152,21 +160,31 @@ function getWebAudioStream() {
   return streamDestination.stream;
 } // end getWebAudioStream
 
-function download(recordedChunks) {
- // const blob = recordedChunks;
-  var blob = new Blob(recordedChunks, {
-    type: 'video/webm'
-  });
+function download(recordedChunks, name) {
+
+  const blob = new Blob(recordedChunks, { type: 'video/webm' });
 
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   document.body.appendChild(a);
   a.style = 'display: none';
   a.href = url;
-  a.download = 'test.webm';
+  a.download = name;
   a.click();
   window.URL.revokeObjectURL(url);
 } // download
+
+async function toWav (inputBlob) {
+
+  await ffmpeg.load();
+  const name = 'input';
+  ffmpeg.FS('WriteFile', name , inputBlob);
+  const outputFile = 'output.wav';
+  await ffmpeg.run('-i', name, outputFile);
+  const data = ffmpeg.FS('readFile', outputFile); 
+  return new Blob([data.buffer], { type: 'audio/wav'});
+
+}
   
 </script>
 </body>
