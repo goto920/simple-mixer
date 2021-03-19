@@ -49,6 +49,7 @@ const constraints = {
 const sources = [];
 const recorders = [];
 let audioCtx = null;
+let outputAudioBuffers = [];
 
 const stream2 = getWebAudioStream(); // PC audio
 console.log(stream2.getTracks()[0].getSettings());
@@ -88,12 +89,11 @@ async function getMedia(constraints) {
     });
     sources.forEach ((source) => {source.stop();});
 
-
     recorders[0].onstop = function(e) {
       console.log('mediarecorder.onstop', e);
       console.log('chunks', chunks); // to see if mimeType defined
       download(chunks, 'micAudio.webm');
-      // const result = toWav(chunks);
+      webmToAudioBuffer(chunks);
     }
 
     recorders[0].ondataavailable = function(e) {
@@ -104,12 +104,16 @@ async function getMedia(constraints) {
       console.log('mediarecorder.onstop', e);
       console.log('chunks2', chunks2);
       download(chunks2, 'PCAudio.webm');
-      // const result = toWav(chunks2);
+      webmToAudioBuffer(chunks2);
     }
 
     recorders[1].ondataavailable = function(e) {
         chunks2.push(e.data);
     }
+
+    await sleep(3000);
+    console.log('outputAudioBuffers', outputAudioBuffers);
+
 } // End getMedia()
 
 function getWebAudioStream() {   
@@ -160,9 +164,31 @@ function getWebAudioStream() {
   return streamDestination.stream;
 } // end getWebAudioStream
 
+function webmToAudioBuffer (recordedChunks) {
+
+  const fileReader = new FileReader();
+  const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+  
+  fileReader.readAsArrayBuffer(blob);
+
+  let retval = null;
+
+  fileReader.onload = function() {
+    let audioBuffer = null;
+    audioCtx.decodeAudioData(fileReader.result, 
+       function (audioBuffer) {
+         console.log('decoded', audioBuffer);
+         outputAudioBuffers.push(audioBuffer);
+       }
+    );
+  }
+
+  return retval;
+}
+
 function download(recordedChunks, name) {
 
-  const blob = new Blob(recordedChunks, { type: 'video/webm' });
+  const blob = new Blob(recordedChunks, { type: 'audio/webm' });
 
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
