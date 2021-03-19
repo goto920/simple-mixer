@@ -1,0 +1,173 @@
+<html>
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
+
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+
+const types = [
+             "video/webm",
+             "audio/wav",
+             "audio/mp3",
+             "audio/ogg\;codecs=opus",
+             "audio/webm",
+             "video/webm\;codecs=vp8",
+             "video/webm\;codecs=daala",
+             "video/webm\;codecs=h264",
+             "audio/webm\;codecs=opus",
+             "video/mpeg"];
+
+for (var i in types) {
+  console.log( "Is " + types[i] + " supported? " 
+  + (MediaRecorder.isTypeSupported(types[i]) ? "Maybe!" : "Nope :("));
+}
+
+
+// window.addEventListener('click', init);
+
+const constraints = {
+  audio: {
+    autoGainControl: false, // default true
+    echoCancellation: false, // default true
+    noiseSuppression: false, // default true
+    // volume: 0.5, // default undefined
+    // channelCount: 4, // cannot be set (device dependent value)
+  },
+  video: false
+}; 
+
+
+const sources = [];
+const recorders = [];
+let audioCtx = null;
+
+const stream2 = getWebAudioStream(); // PC audio
+console.log(stream2.getTracks()[0].getSettings());
+const stream = getMedia(constraints); // PC audio
+
+// microphone
+async function getMedia(constraints) {
+  let stream = null;
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(constraints)  
+    console.log('stream', stream);
+    console.log(stream.getTracks()[0].getSettings());
+    const mediaRecorder = new MediaRecorder(stream, {mimeType: 'video/webm'});
+    console.log('mediaRecorder', mediaRecorder);
+    const mediaRecorder2 = new MediaRecorder(stream2, {mimeType: 'video/webm'});
+    console.log('mediaRecorder2', mediaRecorder2);
+    recorders.push(mediaRecorder); recorders.push(mediaRecorder2);
+  } catch (err) {console.log(err);}
+
+    audioCtx.resume();
+    sources[0].start(); sources[1].start();
+
+    const chunks = [];
+    const chunks2 = [];
+
+    recorders.forEach ((recorder) => { 
+      console.log('recorder start');
+      recorder.start()
+    });
+
+    await sleep(30000);
+
+    recorders.forEach ((recorder) => {
+      console.log('recorder stop');
+      recorder.stop();
+    });
+    sources.forEach ((source) => {source.stop();});
+
+
+    recorders[0].onstop = function(e) {
+      console.log('mediarecorder.onstop', e);
+      console.log('chunks', chunks);
+      download(chunks);
+    }
+
+    recorders[0].ondataavailable = function(e) {
+      chunks.push(e.data);
+    }
+
+    recorders[1].onstop = function(e) {
+      console.log('mediarecorder.onstop', e);
+      console.log('chunks', chunks2);
+      download(chunks2);
+    }
+
+    recorders[1].ondataavailable = function(e) {
+        chunks2.push(e.data);
+    }
+} // End getMedia()
+
+function getWebAudioStream() {   
+
+  console.log('getWebAudioStream');
+  audioCtx = new AudioContext();
+  
+  const panNode0 = audioCtx.createStereoPanner();
+    panNode0.pan.value = -1.0; // left
+  const osc0 = audioCtx.createOscillator();
+    osc0.frequency.setValueAtTime(220.0,audioCtx.currentTime); // lower A
+    osc0.type = "sine"; // default (square, sawtooth, triangle, custom)
+  const panNode1 = audioCtx.createStereoPanner();
+    panNode1.pan.value = 1.0; // right
+    const osc1 = audioCtx.createOscillator();
+    osc1.frequency.setValueAtTime(220*Math.pow(2,7/12),audioCtx.currentTime); 
+   // 5th note
+    osc0.type = "sine";
+
+  sources.push(osc0); sources.push(osc1);
+
+  osc0.connect(panNode0); osc1.connect(panNode1);
+  const gainNode = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+
+  panNode0.connect(gainNode); panNode1.connect(gainNode);
+
+  const streamDestination = audioCtx.createMediaStreamDestination();
+  gainNode.connect(streamDestination);
+  gainNode.connect(audioCtx.destination);
+  audioCtx.suspend();
+
+  /*
+  osc0.start(); osc0.stop(10); 
+  osc1.start(); osc1.stop(20);
+  */
+
+  osc0.onended = function () {
+    console.log('osc0 onended');
+    isPlaying = false;
+  }
+
+  osc1.onended = function () {
+    console.log('osc1 onended');
+    isPlaying = false;
+  }
+
+  return streamDestination.stream;
+} // end getWebAudioStream
+
+function download(recordedChunks) {
+ // const blob = recordedChunks;
+  var blob = new Blob(recordedChunks, {
+    type: 'video/webm'
+  });
+
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  document.body.appendChild(a);
+  a.style = 'display: none';
+  a.href = url;
+  a.download = 'test.webm';
+  a.click();
+  window.URL.revokeObjectURL(url);
+} // download
+  
+</script>
+</body>
+</html>
