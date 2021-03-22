@@ -180,15 +180,15 @@ class App extends Component {
      <div className='text-divider'>{m.timeTitle}&nbsp;
       ({m.timeSliderPosition}:&nbsp; 
        <font color='green'>
-       {('000000' + this.state.playingAt.toFixed(2)).slice(-6)}</font>)
+       {('00000' + this.state.playingAt.toFixed(1)).slice(-5)}</font>)
      </div>
 
 {/* time A, B, song length */}
      <center>
-     A: {('00000' + this.state.timeA.toFixed(2)).slice(-5)} 
-         -- B: {('000000' + this.state.timeB.toFixed(2)).slice(-6)}
+     A: {('00000' + this.state.timeA.toFixed(1)).slice(-5)} 
+         -- B: {('00000' + this.state.timeB.toFixed(1)).slice(-5)}
      &emsp; song length: {this.inputAudio[0] ? 
-    ('000000' + this.inputAudio[0].data.duration.toFixed(2)).slice(-6) : 0.00}
+    ('00000' + this.inputAudio[0].data.duration.toFixed(1)).slice(-5) : 0.00}
      <br />
      <div className='slider'>
      <Tooltip title={m.timeSlider}>
@@ -226,6 +226,7 @@ class App extends Component {
      </Tooltip>
      </span>
      </center>
+     <br />
 
 {/* Player controls */}
      <div className='text-divider'>{m.playerTitle}</div>
@@ -314,6 +315,7 @@ class App extends Component {
      </div>
 
 {/* Track gain controls in separate file */}
+     <br />
      <div className='text-divider'>{m.trackGainTitle}</div>
      <TrackGainSliderList
         inputAudio={this.inputAudio} 
@@ -708,6 +710,7 @@ class App extends Component {
       }
 
       if (this.state.loop) {
+        this.setState({playingAt: this.state.timeA});
         this.playAB (this.state.loopDelay, this.state.timeA, this.state.timeB);
       }
 
@@ -765,7 +768,7 @@ class App extends Component {
      source.start();
 
      source.onended = function(e) {
-       delete this.mixedSource.buffer;
+       this.mixedSource.buffer = null;
        this.mixedSource = null;
        this.setState({isPlaying: false});
      }.bind(this);
