@@ -10,18 +10,37 @@ if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
     // return;
 }
 
-// Label is empty until permisson is given in pop-up window for getUserMedia()
-// permission can be remembered
-var stream = null;
+
 var mediaRecorder = null;
 var chunks = [];
 
 const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
 
+const constraints = {
+  audio: {
+    autoGainControl: false, // default true
+    echoCancellation: false, // default true
+    noiseSuppression: false, // default true
+    // volume: 0.5, // default undefined
+    // channelCount: 4, // cannot be set (device dependent value)
+  },
+}; 
+
+let stream = null; // microphone
 (async () => {   
-  stream 
-    = await navigator.mediaDevices.getUserMedia({audio: true, video: false});   
+  stream = await navigator.mediaDevices.getUserMedia(constraints);   
+  console.log(stream);
+  let tracks = stream.getAudioTracks();
+  tracks.forEach (
+    (track) => {
+      // track.applyConstraints(constraints.audio); // no effect
+      console.log(track.getSettings());
+    }
+  ); // end forEach
+
 /*
+// Label is empty until permisson is given in pop-up window for getUserMedia()
+// permission can be remembered
   let devices = await navigator.mediaDevices.enumerateDevices();   
   console.log(devices);
 */
@@ -81,7 +100,7 @@ var myStream = destination.stream;
   }
 */
 
- })();
+ })(); // end of async
 
 </script>
 </body>

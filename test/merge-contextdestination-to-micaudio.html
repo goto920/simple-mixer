@@ -1,15 +1,10 @@
 <html>
 <head>
 <meta charset="utf-8">
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.9.7/dist/ffmpeg.min.js"
-crossorigin="anonymous">
-</script>
 </head>
 <body>
 Here
 <script>
-const { createFFmpeg } = FFmpeg;
-const ffmpeg = createFFmpeg();
 const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -92,6 +87,7 @@ async function getMedia(constraints) {
     recorders[0].onstop = function(e) {
       console.log('mediarecorder.onstop', e);
       console.log('chunks', chunks); // to see if mimeType defined
+      (stream.getTracks()).forEach ( (track) => track.stop() );
       download(chunks, 'micAudio.webm');
       webmToAudioBuffer(chunks);
     }
@@ -103,6 +99,7 @@ async function getMedia(constraints) {
     recorders[1].onstop = function(e) {
       console.log('mediarecorder.onstop', e);
       console.log('chunks2', chunks2);
+      // (stream.getTracks()).forEach ( (track) => track.stop() );
       download(chunks2, 'PCAudio.webm');
       webmToAudioBuffer(chunks2);
     }
@@ -200,18 +197,6 @@ function download(recordedChunks, name) {
   window.URL.revokeObjectURL(url);
 } // download
 
-async function toWav (inputBlob) {
-
-  await ffmpeg.load();
-  const name = 'input';
-  ffmpeg.FS('WriteFile', name , inputBlob);
-  const outputFile = 'output.wav';
-  await ffmpeg.run('-i', name, outputFile);
-  const data = ffmpeg.FS('readFile', outputFile); 
-  return new Blob([data.buffer], { type: 'audio/wav'});
-
-}
-  
 </script>
 </body>
 </html>
