@@ -1,32 +1,33 @@
-import { Component} from 'react';
+import { Component } from 'react';
 import '../App.css';
 
 export default class TrackGainSlider extends Component {
   constructor(props){
-   super();
-   this.state = {
-     gain: props.gain,
-   }
-   this.id = props.id;
-   this.trackName = props.trackName;
-   this.handler = props.handler;
+    super();
+
+    this.state = { gain: props.initialGain, }; 
+    // get initial gain from props and keep current gain locally
+
+    this.handler = this.handler.bind(this);
   } 
 
- componentDidUpdate(prevProps) {
-   if (prevProps.gain !== this.props.gain) {
-     this.setState({gain: this.props.gain});
-   }
- }
+
+  // update local state and notiry gain change to the handler in App.js
+  handler(e){ 
+    this.setState({gain: parseFloat(e.target.value)});
+    this.props.handler(e); // notify gain change to App.js
+  }
 
   render(){
-   if (this.state.gain === undefined || !this.trackName === undefined) return null;
+    const {trackName, id} = this.props;
+    const {gain} = this.state;
 
-   return (<div className='slider'>
-    {this.trackName} ({this.state.gain})<br />
-     0 <input type='range' id={this.id} name='gainSlider'
-        min='0' max='100' value={this.state.gain}
-        onChange={this.handler} /> 100
-   </div>);
-  } // end render
+    return (<div className='slider'>
+     {trackName} ({('000' + gain).slice(-3)})<br />
+      0 <input type='range' id={id} name='gainSlider'
+      min='0' max='100' value={gain}
+      onChange={this.handler} /> 100
+      </div>);
+    } // end render
 
 }; // End class TrackGainSlider
