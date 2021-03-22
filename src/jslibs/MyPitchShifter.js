@@ -107,7 +107,7 @@ export default class MyPitchShifter {
     const right = outputBuffer.getChannelData(1);
     left.set(this.recordedSamples[0]);
     right.set(this.recordedSamples[1]);
-    // Typedarray.set(array[, offset])
+    this.recordedSamples = [[],[]]; // clear Samples to save memory
 
     this._recordedBuffer = outputBuffer;
 
