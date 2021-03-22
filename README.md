@@ -15,11 +15,18 @@ but is not limited (speed > 0) for export (or playback after processing).
 
 Written with React and Web Audio API.
 
-SoundtouchJS works as an intermediate ScriptProcessorNode 
-either with AudioContext or OfflineAudioContext (NG for iOS).
-AudioWorklet DOES work with OfflineAudioContext now (Mar. 17).
-File export function is implemented in ScriptProcessorNode and
-AudioWorkletNode.
+SoundtouchJS works well as an intermediate ScriptProcessorNode with
+AudioContext and as the last node with OfflineAudioContext.
+AudioWorklet works well as an intermediate Node with AudioContext and
+OfflineAudioContext.
+
+In the case of OfflineAudioContext, 
+ScriptProcessorNode with input and output does not work well.
+Output is almost silence and "renderedBuffer" for ScriptProcessorNode 
+at completion seems to be silent or collapsed.
+
+File export function is, therefore, implemented in ScriptProcessorNode
+and ScriptProcessorNode must be the last node before the destination.
 
 ## input audio file(s) (wav, mp3, or whatever the browser supports)
 
@@ -189,7 +196,7 @@ context.oncomplete = function(e) {
 
 ### Issues/Plan/Status
 - Realtime playback -- Slow down only (50 -- 100%) (Spec)
-- (Mar. 11) Voice recording with playback ==> Will think of this after other issues
+- (Mar. 11, 2021) Voice recording with playback ==> Will think of this after other issues
 - (Mar. 11) Performance issues ==> Reduce UI rendering ==> testing
 - (Mar. 15) Working on docs ==> almost (Mar. 17)
 - (Mar. 17) worklet with OfflineAudioContext functional on Firefox and Chrome
@@ -197,6 +204,8 @@ context.oncomplete = function(e) {
 - (Mar. 18) Now works on Safari with ScriptProcessorNode
   - AudioWorklet is not available on Safari (incl. iOS Chrome)
   - worklet branch merged to main
+- (Mar. 22) Almost done. 
+  - dj-fiorex is developing Voice recording functionality.
 
 ## Collaborator ##
 
