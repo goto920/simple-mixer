@@ -7,6 +7,7 @@ src
 ├── index.css (React default)
 ├── index.js (Javascript entry point)
 ├── jslibs
+│   ├── checkAudioWorklet.js (check browser capability about AudioWorklet)
 │   ├── MyFilter.js (* soundtouchJS Filter for the ScriptProcessor)
 │   ├── MyPitchShifter.js (*soundtouchJS ScriptProcessor)
 │   ├── MyPitchShifterWorkletNode.js (*soundtouchJS AudioWorkletNode)
