@@ -2,7 +2,7 @@ import {saveAs} from 'file-saver';
 import * as toWav from 'audiobuffer-to-wav';
 
 const noop = function() {return;}
-const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
+// const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
 
 class MyPitchShifterWorkletNode extends AudioWorkletNode {
   constructor(context,workletName, options){
@@ -54,12 +54,12 @@ get node(){ return this;} // for compatibility
     await this.port.postMessage({command: 'stop', args: []});
 
     this.disconnect();
+/*
     // await this._recordedBuffer is filled
-
     console.log(this.name,'sleep begin');
     await sleep(3000); // sleep in msec
     console.log(this.name,'sleep end');
-
+*/
     this._onEnd(this._recordedBuffer);
 
     this.running = false;
@@ -71,13 +71,15 @@ get node(){ return this;} // for compatibility
       // console.log(this.name, 'recvd', command);
       switch(command) {
         case 'End':
-          console.log(this.name, 'recvd', command);
+          // console.log(this.name, 'recvd', command);
+        /*
           this.recordedSamples = args[0]; 
           if (this.recordedSamples)
              console.log (this.name, 'worklet stopped. recordedSamples');
           else
              console.log (this.name, 'worklet stopped. NO recordedSamples');
           if (this.recording) this.createRecordedBuffer();
+        */
 
           this.stop();
         break;
