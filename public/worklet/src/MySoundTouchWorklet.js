@@ -74,7 +74,7 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
 
     if (event.data.command) {
       const {command,args} = event.data;
-      console.log(this.name, command);
+      // console.log(this.name, command);
       switch(command){
         case 'setTempo': 
           this.soundtouch.tempo = args[0];
