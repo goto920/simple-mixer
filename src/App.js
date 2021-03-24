@@ -459,7 +459,7 @@ class App extends Component {
       if (this.mixedSource) this.mixedSource.stop();
 
       this.setState ({loop: false, playButtonNextAction: 'Play', 
-          playingAt: this.state.timeA})
+          playingAt: this.state.timeA, isPlaying: false})
 
       return;
     }    
@@ -694,12 +694,16 @@ class App extends Component {
       for (let i=0; i < this.inputAudio.length; i++)
       this.inputAudio.forEach (
         (element) => { 
-          element.gainNode.disconnect();
-          element.source.buffer = null;
+          if (element.source) {
+            element.source.stop();
+            element.gainNode.disconnect();
+            element.source.buffer = null;
+            element.source = null;
+          }
         }
       );
 
-      this.setState({isPlaying: false});
+      this.setState({isPlaying: false, playingAt: this.state.timeA});
 
       if (!this.state.useAudioWorklet) {
         if (exporter === 'exportFile' ) {
@@ -707,12 +711,11 @@ class App extends Component {
           this.setState({isPlaying: false}); // audioBuffer is in the shifter
         } else if (exporter === 'playMix')
           this.playSource(recordedBuffer);
-      }
+      } 
 
       if (this.state.loop) {
-        this.setState({playingAt: this.state.timeA});
         this.playAB (this.state.loopDelay, this.state.timeA, this.state.timeB);
-      }
+      } else this.setState({playButtonNextAction: 'Play'});
 
    }.bind(this);
 
