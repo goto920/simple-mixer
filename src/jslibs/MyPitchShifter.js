@@ -49,6 +49,7 @@ export default class MyPitchShifter {
     this._nVirtualOutputFrames = 0;
     this._playingAt = 0;
 
+    this.name = this.constructor.name;
     this.outSamples = new Float32Array(bufferSize*2);
     this.inSamples  = new Float32Array(bufferSize*2);
     this.sampleRate = context.sampleRate; 
