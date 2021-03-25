@@ -47,10 +47,8 @@ class MyFilter extends _soundtouchModified.SimpleFilter {
 
   putSource(source) {
     //console.log('putSource');
-    // for (let i = 0; i < source.length; i++) 
-    //this.sourceSound.push(source[i]);
-    //
-    this.sourceSound.push([...source]);
+    for (let i = 0; i < source.length; i++) this.sourceSound.push(source[i]); // this.sourceSound.push([...source]); /* mmm does not work in worklet */
+
   } // LR interleaved
 
   /* new method replaces getWebAudioNode.extract() */
@@ -128,8 +126,7 @@ const noop = function () {
 
 class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
   constructor(options) {
-    super(); //    super(options);
-
+    super();
     this.name = this.constructor.name; // console.log(this.name, options);
 
     /*
@@ -166,7 +163,8 @@ class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
       const {
         command,
         args
-      } = event.data; // console.log(this.name, command);
+      } = event.data;
+      console.log(this.name, command);
 
       switch (command) {
         case 'setTempo':
