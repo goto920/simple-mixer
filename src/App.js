@@ -647,10 +647,14 @@ class App extends Component {
 
 
     const begin = context.currentTime + delay;
+    this.inputAudio.forEach ( (element) =>
+        element.source.start(begin, timeA)
+    );
+
+/*
     for (let i=0; i < this.inputAudio.length; i++)
       this.inputAudio[i].source.start(begin, timeA);
-
-    // dummySourceNode.start(begin, timeA);
+*/
 
     if (offline) {
       console.log('startRendering');
