@@ -36,10 +36,11 @@ export default class MyFilter extends SimpleFilter {
 /* new method to put samples from e.inputBuffer in onaudioprocess */
   putSource(source){ 
     //console.log('putSource');
-    // for (let i = 0; i < source.length; i++) 
-       //this.sourceSound.push(source[i]);
-    //
-   this.sourceSound.push([...source]);
+     for (let i = 0; i < source.length; i++) 
+       this.sourceSound.push(source[i]);
+
+   // this.sourceSound.push([...source]); /* mmm does not work in worklet */
+
   } // LR interleaved
 
 /* new method replaces getWebAudioNode.extract() */
