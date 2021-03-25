@@ -709,6 +709,11 @@ class App extends Component {
 
       this.setState({isPlaying: false, playingAt: this.state.timeA});
 
+      if (this.state.loop) {
+        console.log('loop from', this.state.timeA);
+        this.playAB (this.state.loopDelay, this.state.timeA, this.state.timeB);
+      } else this.setState({playButtonNextAction: 'Play'});
+
       if (!this.state.useAudioWorklet) {
         if (exporter === 'exportFile' ) {
           shifter.exportToFile('mix_' + Date.now() + '.wav');
@@ -716,10 +721,6 @@ class App extends Component {
         } else if (exporter === 'playMix')
           this.playSource(recordedBuffer);
       } 
-
-      if (this.state.loop) {
-        this.playAB (this.state.loopDelay, this.state.timeA, this.state.timeB);
-      } else this.setState({playButtonNextAction: 'Play'});
 
    }.bind(this);
 
