@@ -1,0 +1,107 @@
+<html>
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+Nothing
+<script>
+if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+    console.log("navigator.mediaDevices.enumerateDevices() not supported."); 
+    // return;
+}
+
+
+var mediaRecorder = null;
+var chunks = [];
+
+const sleep = msec => new Promise(resolve => setTimeout(resolve, msec));
+
+const constraints = {
+  audio: {
+    autoGainControl: false, // default true
+    echoCancellation: false, // default true
+    noiseSuppression: false, // default true
+    // volume: 0.5, // default undefined
+    // channelCount: 4, // cannot be set (device dependent value)
+  },
+}; 
+
+let stream = null; // microphone
+(async () => {   
+  stream = await navigator.mediaDevices.getUserMedia(constraints);   
+  console.log(stream);
+  let tracks = stream.getAudioTracks();
+  tracks.forEach (
+    (track) => {
+      // track.applyConstraints(constraints.audio); // no effect
+      console.log(track.getSettings());
+    }
+  ); // end forEach
+
+/*
+// Label is empty until permisson is given in pop-up window for getUserMedia()
+// permission can be remembered
+  let devices = await navigator.mediaDevices.enumerateDevices();   
+  console.log(devices);
+*/
+
+/* Simple playback
+  // get corresponding HTML audio tag
+  var audio = document.querySelector('audio');
+  console.log(audio);
+
+  audio.srcObject = stream;
+  audio.onloadedmetadata = function (e) {
+    audio.play();
+  }
+*/
+
+/*
+// record the stream
+  mediaRecorder = new MediaRecorder(stream);
+  mediaRecorder.start(); console.log('mediaRecorder.start()');
+  await sleep (60000);
+  mediaRecorder.stop(); console.log('mediaRecorder.stop()');
+
+  mediaRecorder.onstop = function(e) {
+    console.log('mediarecorder.onstop', e);
+    console.log('chunks', chunks);
+  }
+
+  mediaRecorder.ondataavailable = function(e) {
+    chunks.push(e.data);
+  }
+*/
+
+
+// Connect audio stream to AudioContext
+  const context = new AudioContext();
+  const source = context.createMediaStreamSource (stream);
+
+  // source.connect(context.destination);
+
+/*
+var audioCtx = new AudioContext();
+var destination = audioCtx.createMediaStreamDestination();
+var myStream = destination.stream;
+*/
+
+/*
+ var destinationNode = AudioNode.connect(destination, outputIndex, inputIndex);
+ */
+  // source.start(); /* not defined for mediastream
+  await sleep (30000);
+  // source.stop(); /* not defined for mediastream
+  source.disconnect(); // worked
+
+/* // not defined for mediastream
+  source.onended = function (e) {
+    console.log('source ended');
+  }
+*/
+
+ })(); // end of async
+
+</script>
+</body>
+</html>

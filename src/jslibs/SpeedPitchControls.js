@@ -8,77 +8,70 @@ import RemoveIcon from '@material-ui/icons/Remove';
 export default class SpeedPitchControls extends Component {
   constructor(props){
     super();
-
-    this.state = {
-      playSpeed: props.playSpeed,
-      playPitch: props.playPitch,
-      m : props.messages,
-    };
-
-    this.setSpeed = props.setSpeed;
-    this.setPitch = props.setPitch;
   }
 
-componentDidUpdate(prevProps) {
-  if (prevProps.playSpeed !== this.props.playSpeed) {
-    this.setState({playSpeed: this.props.playSpeed}); 
+  shouldComponentUpdate(nextProps, nextState){
+    if (nextProps.playSpeed !== this.props.playSpeed
+     || nextProps.playPitch !== this.props.playPitch
+     || nextProps.messages !== this.props.messages) return true;
+
+    return false;
   }
 
-  if (prevProps.playPitch !== this.props.playPitch) {
-    this.setState({playPitch : this.props.playPitch}); 
-  }
+  render(){ // no state change
 
-  if (prevProps.messages !== this.props.messages) {
-    this.setState({m: this.props.messages}); 
-  }
-}
+    const {playSpeed, playPitch, messages, setSpeed, setPitch} = this.props;
 
-  render(){
-    const {m} = this.state;
+    const digits = Math.abs(playPitch);
+    let sign = ' ';
+    if (playPitch > 0) sign = '+'; 
+    else if (playPitch < 0) sign = '-';
+    else sign = '*';
+    const pitchStr = sign + ('0000' + digits.toFixed(1)).slice(-4);
 
     return(<span>
     <span>
-     <div className='text-divider'>{m.speedTitle1} 
-       (<font color= 'green'>{(100*this.state.playSpeed).toFixed(0)}%)</font>
-       &nbsp; {m.speedTitle2}
+     <div className='text-divider'>{messages.speedTitle1}&nbsp; 
+       (<font color= 'green'>
+       {('000' + (100*playSpeed).toFixed(0)).slice(-3)}%)</font>
+       &nbsp; {messages.speedTitle2}
     </div>
 
       <center>
      &plusmn; 10% <IconButton 
-         onClick={() => this.setSpeed({target: {name: 'sub10'}})} > 
+         onClick={() => setSpeed({target: {name: 'sub10'}})} > 
      <RemoveIcon color='primary'/> </IconButton>
      <IconButton
-         onClick={() => this.setSpeed({target: {name: 'add10'}})} > 
+         onClick={() => setSpeed({target: {name: 'add10'}})} > 
      <AddIcon color='primary'/> </IconButton>
      &nbsp;&nbsp;&nbsp;
      &plusmn; 1% <IconButton
-        onClick={() => this.setSpeed({target: {name: 'sub1'}})} > 
+        onClick={() => setSpeed({target: {name: 'sub1'}})} > 
      <RemoveIcon color='primary'/> </IconButton>
      <IconButton
-        onClick={() => this.setSpeed({target: {name: 'add1'}})} > 
+        onClick={() => setSpeed({target: {name: 'add1'}})} > 
      <AddIcon color='primary'/> </IconButton>
 </center>
 
-     <div className='text-divider'>{m.pitchTitle}&nbsp; 
- (<font color='green'>{this.state.playPitch.toFixed(1)}</font>) (-12 -- +12)</div>
+     <div className='text-divider'>{messages.pitchTitle}&nbsp; 
+ (<font color='green'>{pitchStr}</font>) (-12 -- +12)</div>
 <center>
      b/# <IconButton
-        onClick={() => this.setPitch({target: {name: 'sub1'}})} > 
+        onClick={() => setPitch({target: {name: 'sub1'}})} > 
      <RemoveIcon color='primary'/> </IconButton>
      <IconButton
-        onClick={() => this.setPitch({target: {name: 'add1'}})} > 
+        onClick={() => setPitch({target: {name: 'add1'}})} > 
      <AddIcon color='primary'/> </IconButton>
      &nbsp;&nbsp;&nbsp;
      &plusmn; 10 cents <IconButton
-        onClick={() => this.setPitch({target: {name: 'sub10c'}})} > 
+        onClick={() => setPitch({target: {name: 'sub10c'}})} > 
      <RemoveIcon color='primary'/> </IconButton>
      <IconButton
-        onClick={() => this.setPitch({target: {name: 'add10c'}})} > 
+        onClick={() => setPitch({target: {name: 'add10c'}})} > 
      <AddIcon color='primary'/> </IconButton>
       </center></span>
 
       </span>); 
-
 
   } // end render
 

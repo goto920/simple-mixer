@@ -49,6 +49,7 @@ export default class MyPitchShifter {
     this._nVirtualOutputFrames = 0;
     this._playingAt = 0;
 
+    this.name = this.constructor.name;
     this.outSamples = new Float32Array(bufferSize*2);
     this.inSamples  = new Float32Array(bufferSize*2);
     this.sampleRate = context.sampleRate; 
@@ -108,7 +109,7 @@ export default class MyPitchShifter {
     const right = outputBuffer.getChannelData(1);
     left.set(this.recordedSamples[0]);
     right.set(this.recordedSamples[1]);
-    // Typedarray.set(array[, offset])
+    this.recordedSamples = [[],[]]; // clear Samples to save memory
 
     this._recordedBuffer = outputBuffer;
 
@@ -164,11 +165,12 @@ export default class MyPitchShifter {
     for (let i=0; i < framesExtracted; i++) {
       left[i]  = outSamples[i * 2]; 
       right[i] = outSamples[i * 2 + 1];
-      if (this.record) {
-        this.recordedSamples[0].push(left[i]);
-        this.recordedSamples[1].push(right[i]);
-      }
     } 
+
+    if (this.record) {
+      this.recordedSamples[0].push([...left]);
+      this.recordedSamples[1].push([...right]);
+    }
 
     return framesExtracted;
 
@@ -183,8 +185,9 @@ export default class MyPitchShifter {
       output.set(inputBuffer.getChannelData(channel)); 
 
       if (this.record) 
-        for (let i = 0; i < outputBuffer.length; i++) 
-          this.recordedSamples[channel].push(input[i]);
+        // for (let i = 0; i < outputBuffer.length; i++) 
+        //  this.recordedSamples[channel].push(input[i]);
+      this.recordedSamples[channel].push([...input]);
     }
 
   } // End pathThrough()

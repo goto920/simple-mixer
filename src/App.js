@@ -1,5 +1,5 @@
 /*
-   Written by goto at kmgoto.jp (Mar. 2021)
+
    Copyright of my code is not claimed.
 
    Based on soundtouchjs/src/PitchShifter.js, SimpleFilter.js
@@ -87,7 +87,7 @@ class App extends Component {
   constructor (props) {
     super();
     this.audioCtx = null;
-    this.inputAudio = [];
+    this.inputAudio = []; // filled in loadFiles
     this.mixedSource = null;
     this.masterGainNode = null;
  
@@ -100,7 +100,6 @@ class App extends Component {
       loop: false,
       loopDelay: 2,
       playButtonNextAction: 'load files first!',
-      gains: [],
       masterGain: 75,
       playSpeed: 1.0,
       playPitch: 0.0,
@@ -125,13 +124,14 @@ class App extends Component {
     if (this.audioCtx !== null) this.audioCtx.close();
   }
 
-
   render(){
 
     return (
      <div className="App">
      {m.title}
      <br />
+
+{/* language selection */}
      <center>
      (language) &ensp;
      <span className='tiny-button'>
@@ -139,8 +139,9 @@ class App extends Component {
       <button onClick = {this.switchLanguage}>
       {this.state.language === 'ja' ? 'EN' : 'JP' }</button>
      </Tooltip>
-     </span>
-     &ensp;(AudioWorklet)
+     </span>&ensp;
+{/* AudioWorklet on/off */}
+(AudioWorklet)
      <Tooltip title={m.worklet}>
      <IconButton name='toggleWorklet'
      onClick = {
@@ -153,28 +154,41 @@ class App extends Component {
      </Tooltip>
      </center>
      <hr />
-     <span className="selectFile">
+
+{/* loading file(s) */}
+     <span className='selectFile'>
      <Tooltip title={m.fileReader}>
-     <input type="file" name="loadFiles" multiple
+     <form id='fileLoader' style={{display: 'inline'}}>
+     <input type='file' name="loadFiles" multiple
         accept="audio/*" onChange={this.loadFiles} />
+     </form>
      </Tooltip>
-     &emsp;<span className='tiny-button'>
+     &emsp;
+{/* clear input files */}
+<span className='tiny-button'>
      <Tooltip title={m.clearFiles}>
      <button name='clearFile' onClick = {() => {
-       this.setState({gains: [], 
-       playButtonNextAction: 'load files first!'});
-       this.inputAudio = []; }} 
+        if (this.state.isPlaying) return;
+        this.setState({playButtonNextAction: 'load files first!'});
+        document.getElementById('fileLoader').reset();
+        this.inputAudio.forEach ((element) => {delete element.data;});
+        this.inputAudio = []; }} 
      >{m.clearButton}</button></Tooltip></span>
      <br />
      </span><br/>
+{/* time sliders */}
      <div className='text-divider'>{m.timeTitle}&nbsp;
       ({m.timeSliderPosition}:&nbsp; 
-       <font color='green'>{this.state.playingAt.toFixed(2)}</font>)
+       <font color='green'>
+       {('00000' + this.state.playingAt.toFixed(1)).slice(-5)}</font>)
      </div>
+
+{/* time A, B, song length */}
      <center>
-     A: {this.state.timeA.toFixed(2)} -- B: {this.state.timeB.toFixed(2)}
+     A: {('00000' + this.state.timeA.toFixed(1)).slice(-5)} 
+         -- B: {('00000' + this.state.timeB.toFixed(1)).slice(-5)}
      &emsp; song length: {this.inputAudio[0] ? 
-          this.inputAudio[0].data.duration.toFixed(2) : 0.00}
+    ('00000' + this.inputAudio[0].data.duration.toFixed(1)).slice(-5) : 0.00}
      <br />
      <div className='slider'>
      <Tooltip title={m.timeSlider}>
@@ -186,6 +200,9 @@ class App extends Component {
      />
      </Tooltip>
      </div>
+
+{/* set TimeA, B, reset */}
+
      <span className='tiny-button'>
      <Tooltip title={m.setA}>
      <button name='setA' 
@@ -203,25 +220,32 @@ class App extends Component {
       &emsp;
      <Tooltip title={m.resetAB}>
      <button name='reset' 
-        onClick={()=> this.setState({timeA: 0, timeB: this.inputAudio[0].data.duration})}>reset
+         onClick={()=> this.setState({timeA: 0, 
+          timeB: this.inputAudio[0].data.duration})}>reset
      </button>
      </Tooltip>
      </span>
      </center>
+     <br />
 
+{/* Player controls */}
      <div className='text-divider'>{m.playerTitle}</div>
      <center>
+{/* Microphone on/off (toggle state.micOn) */}
     <Tooltip title={m.record}>
     <IconButton 
      onClick={()=> this.setState({micOn: !this.state.micOn})} >
     <MicIcon color={this.state.micOn ? 'secondary' : 'primary'} />
     </IconButton>
     </Tooltip>
+
+   {/* Play button with switching icons in separate file */}
     <PlayButton 
       nextAction={this.state.playButtonNextAction}
       handler={this.handlePlay}
       messages={m}
    />
+   {/* Stop button */}
      <Tooltip title={m.stopButton}>
      <IconButton  
        onClick={() => this.handlePlay({target: {name: 'stop'}})} >
@@ -236,15 +260,17 @@ class App extends Component {
        color={this.state.loop ? 'secondary' : 'primary'} />
      </IconButton>
      </Tooltip>
-
+    {/* File export */}
      <Tooltip title={m.exportButton} aria-label='exportFile'>
      <IconButton  
        onClick={() => this.handlePlay({target: {name: 'exportFile'}})} >
        <GetAppIcon 
-       color={!this.inputAudio.length || this.state.isPlaying ? 'disabled' : 'primary'} />
+       color={!this.inputAudio.length 
+         || this.state.isPlaying ? 'disabled' : 'primary'} />
      </IconButton>
      </Tooltip>
 
+    {/* play Mix after rendering audio (online for ScriptProcessor) */}
      <Tooltip title={m.playMixButton} aria-label='playMix'>
      <IconButton  
        onClick={() => this.handlePlay({target: {name: 'playMix'}})} >
@@ -252,16 +278,20 @@ class App extends Component {
        color={!this.inputAudio.length || this.state.isPlaying ? 'disabled' : 'primary'} />
      </IconButton>
      </Tooltip>
+    {/* bypass processing */}
      <Tooltip title={m.bypassButton}>
      <IconButton
-       onClick={() => this.setState({bypass: !this.state.bypass})}>
+       onClick={() => 
+        { if (this.state.isPlaying) return;
+          this.setState({bypass: !this.state.bypass})}
+      }>
        <NotInterestedIcon
        color={this.state.bypass ? 'disabled' : 'primary'} />
     </IconButton>
      </Tooltip>
 
      </center>
-
+{/* Speed controls in separate file */}
     {this.state.bypass ?  '' : 
     <SpeedPitchControls 
       playSpeed={this.state.playSpeed}
@@ -272,22 +302,28 @@ class App extends Component {
     />
     }
 
+{/* Master Gain control */}
      <div className='slider' key='master'>
        <div className='text-divider'>{m.masterGainTitle}&nbsp;
-       ({this.state.masterGain})</div>
+       ({('000' + this.state.masterGain).slice(-3)})</div>
        <center>
        0 <input type='range' id='master' name='gainSlider' 
-          min='0' max='150' value={this.state.masterGain} 
+          min='0' max='150' 
+          value={this.state.masterGain}
            onChange={this.handleGainSlider} /> 150
        </center>
      </div>
+
+{/* Track gain controls in separate file */}
+     <br />
      <div className='text-divider'>{m.trackGainTitle}</div>
      <TrackGainSliderList
         inputAudio={this.inputAudio} 
-        gains={this.state.gains}
         handler={this.handleGainSlider}
      />
      <hr />
+
+{/* version and help URL */}
      {m.version}: {version} &nbsp;&nbsp;
      <a href={m.url}
      target='_blank' rel='noreferrer'>{m.guide}</a><br />
@@ -305,7 +341,8 @@ class App extends Component {
     if (event.target.files.length === 0) return;
     const files = event.target.files; 
 
-    console.log('loadFiles');
+    console.log('loadFiles', files);
+
     if (this.audioCtx === null) {
       console.log('AudioContext');
       this.audioCtx = new AudioContext();
@@ -336,15 +373,18 @@ class App extends Component {
               gainNode: null,
               gain: 100,
            });
-      
-           const gains = this.state.gains; gains.push(100);
 
+           this.inputAudio.sort((a,b) => {
+             if(a.name < b.name) return -1;
+             if (a.name > b.name) return 1;
+             return 0;
+           });
+     
            this.setState({
              playButtonNextAction: 'Play',
                timeA: 0,
                playingAt: 0,
                timeB: this.inputAudio[0].data.duration, 
-               gains: gains,
            });
 
      // this.inputAudio.sort((a,b) => a.name - b.name); // mmm.. does not work
@@ -366,7 +406,6 @@ class App extends Component {
   handleTimeSlider(event){
 
     if(event.target.name !== 'timeSlider') return;
-
     if (!this.state.isPlaying)
       this.setState({playingAt: parseFloat(event.target.value)});
   }
@@ -420,7 +459,7 @@ class App extends Component {
       if (this.mixedSource) this.mixedSource.stop();
 
       this.setState ({loop: false, playButtonNextAction: 'Play', 
-          playingAt: this.state.timeA})
+          playingAt: this.state.timeA, isPlaying: false})
 
       return;
     }    
@@ -432,7 +471,6 @@ class App extends Component {
 
       const recording = true;
       let offline = isOfflineAudioContext;
-      // if (iOS) { offline = false; }
       this.playAB (0, this.state.timeA, this.state.timeB, 
           recording, offline, event.target.name);
 
@@ -443,7 +481,7 @@ class App extends Component {
 
   handleGainSlider(event){
     if (event.target.name !== 'gainSlider') return;
-//       console.log ('slider id= ', event.target.id);
+      // console.log ('slider id= ', event.target.id);
 // 
     if (event.target.id === 'master'){
       this.setState({masterGain: parseFloat(event.target.value)});
@@ -454,11 +492,10 @@ class App extends Component {
 
     const index = parseInt(event.target.id);
 
-    const gains = this.state.gains;
-    gains[index] = parseInt(event.target.value);
-    this.setState({gains: gains});
-    if (this.inputAudio[index].gainNode !== null)
-      this.inputAudio[index].gainNode.gain.value 
+    const inputAudio = this.inputAudio[index];
+    inputAudio.gain = parseInt(event.target.value);
+    if (inputAudio.gainNode !== null)
+      inputAudio.gainNode.gain.value 
            = parseFloat(event.target.value/100.0); 
 
   } // End handleGainSlider()
@@ -510,14 +547,11 @@ class App extends Component {
     }
   } // End switchLanguage()
 
-  async playAB(delay, timeA, timeB, recording = false, 
-       offline = false, exporter='none'){
-
-    console.log('playAB', 
-       'delay, timeA, timeB, recording, offline, exporter = ', 
-       delay, timeA, timeB, recording, offline, exporter);
+  async playAB(delay, timeA, timeB, 
+       recording = false, offline = false, exporter='none'){
 
     if (this.state.isPlaying) return;
+
     if (this.audioCtx.state === 'suspended' ) this.audioCtx.resume();
 
     const sampleRate = this.inputAudio[0].data.sampleRate;
@@ -566,13 +600,14 @@ class App extends Component {
         // Dynamic import to avoid "Safari misses AudioWorkletnode"
         const module
           = await import('./jslibs/MyPitchShifterWorkletNode');
+        delete this.shifter; this.shifter = null;
         shifter = new module.default(context, 
           'my-soundtouch-processor', options); 
            console.log('AudioWorkletNode functional');
         shifter.updateInterval = updateInterval;
       } catch (err) { 
         console.log(err);
-        shifter = null;
+        delete this.shifter; this.shifter = null;
         shifter = new MyPitchShifter( context, nInputFrames, 
           4096, recording, this.state.bypass); // ScriptProcessorNode
         shifter.updateInterval = updateInterval;
@@ -587,22 +622,17 @@ class App extends Component {
     shifter.tempo = this.state.playSpeed;
     shifter.pitch = Math.pow(2.0,this.state.playPitch/12.0);
 
-/*
-    const dummySourceNode = context.createOscillator();
-    const zeroGain = context.createGain(); zeroGain.gain.value = 0.2;
-    dummySourceNode.connect(zeroGain); zeroGain.connect(shifter); 
-*/
-
     for (let i=0; i < this.inputAudio.length; i++){
+      const inputAudio = this.inputAudio[i];
       const source = context.createBufferSource();
-       if (i === 0)
-         source.buffer = this.addZeros(context,this.inputAudio[i].data);
+      if (i === 0)
+         source.buffer = this.addZeros(context,inputAudio.data);
        else 
-        source.buffer = this.inputAudio[i].data;
-        this.inputAudio[i].source = source;
+         source.buffer = inputAudio.data;
+        inputAudio.source = source;
       const gainNode = context.createGain();
-        gainNode.gain.value = this.state.gains[i]/100.0;
-        this.inputAudio[i].gainNode = gainNode;
+        gainNode.gain.value = inputAudio.gain/100.0;
+        inputAudio.gainNode = gainNode;
       source.connect(gainNode);
       gainNode.connect(shifter.node);
     }
@@ -618,21 +648,14 @@ class App extends Component {
 
 
     const begin = context.currentTime + delay;
-    for (let i=0; i < this.inputAudio.length; i++)
-      this.inputAudio[i].source.start(begin, timeA);
-
-    // dummySourceNode.start(begin, timeA);
+    this.inputAudio.forEach ( (element) =>
+        element.source.start(begin, timeA)
+    );
 
     if (offline) {
       console.log('startRendering');
       context.startRendering();
     }
-
-    /*
-    this.inputAudio[0].source.onended = function(e) {
-      console.log('source 0 onended At', this.state.playingAt);
-    }.bind(this);
-    */
 
     shifter.onUpdate = function(val) { 
       this.setState({playingAt: timeA + val});
@@ -648,12 +671,13 @@ class App extends Component {
           if (exporter === 'exportFile') {
             console.log('exportFile in oncomlete'); 
             shifter.exportToFile('mix_' + Date.now() + '.wav', 
-           e.renderedBuffer);
+              e.renderedBuffer);
           } else if (exporter === 'playMix') {
             console.log('playMix in oncomlete'); 
             this.playSource(e.renderedBuffer);
           } else console.log('exporter unknown: ', exporter);
-         }
+        }
+
       }.bind(this);
     }
 
@@ -662,17 +686,31 @@ class App extends Component {
       console.log('shifter onEnd');
 
       for (let i=0; i < this.inputAudio.length; i++)
-        this.inputAudio[i].gainNode.disconnect();
+      this.inputAudio.forEach (
+        (element) => { 
+          if (element.source) {
+            element.source.stop();
+            element.gainNode.disconnect();
+            element.source.buffer = null;
+            element.source = null;
+          }
+        }
+      );
 
-      this.setState({isPlaying: false});
+      this.setState({isPlaying: false, playingAt: this.state.timeA});
+
+      if (this.state.loop) {
+        console.log('loop from', this.state.timeA);
+        this.playAB (this.state.loopDelay, this.state.timeA, this.state.timeB);
+      } else this.setState({playButtonNextAction: 'Play'});
 
       if (!this.state.useAudioWorklet) {
         if (exporter === 'exportFile' ) {
-         shifter.exportToFile('mix_' + Date.now() + '.wav');
+          shifter.exportToFile('mix_' + Date.now() + '.wav');
           this.setState({isPlaying: false}); // audioBuffer is in the shifter
         } else if (exporter === 'playMix')
           this.playSource(recordedBuffer);
-      }
+      } 
 
    }.bind(this);
 
@@ -728,6 +766,7 @@ class App extends Component {
      source.start();
 
      source.onended = function(e) {
+       this.mixedSource.buffer = null;
        this.mixedSource = null;
        this.setState({isPlaying: false});
      }.bind(this);

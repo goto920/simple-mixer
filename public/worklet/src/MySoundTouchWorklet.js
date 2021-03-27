@@ -31,7 +31,6 @@ import { SoundTouch } from './soundtouch-modified';
 class MySoundTouchWorkletProcessor extends AudioWorkletProcessor {
   constructor(options){
      super();
-//    super(options);
      this.name = this.constructor.name;
     // console.log(this.name, options);
 
