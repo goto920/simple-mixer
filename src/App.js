@@ -90,6 +90,7 @@ class App extends Component {
     this.inputAudio = []; // filled in loadFiles
     this.mixedSource = null;
     this.masterGainNode = null;
+    this.recLatency = 0.1;
  
     this.state = {
       numTracks: 0,
@@ -664,10 +665,9 @@ class App extends Component {
 
 
     const begin = context.currentTime + delay;
-    let latency = 0.2;
     this.inputAudio.forEach ( (element) => {
-      if (element.name === 'record')
-        element.source.start(begin, timeA + latency);
+      if (element.name === 'recordTrack')
+        element.source.start(begin, timeA + this.recLatency);
       else 
         element.source.start(begin, timeA);
       }
@@ -812,11 +812,11 @@ class App extends Component {
         autoGainControl: false, // default true
         // channelCount: 2, // device dependent
         echoCancellation: false, // default true
-        // latency
+        latency: this.recLatency, // 20 m sec
         noiseSuppression: false, // default true
         sampleRate: 44100,
-        sampleSize: 2, // 16 bits?
-        // volume
+        sampleSize: 16, // 16 bits?
+        // volume: // deprecated
       },
     };
 
@@ -846,7 +846,7 @@ class App extends Component {
              this.audioCtx.decodeAudioData(fileReader.result, 
               audioBuffer => {
                 this.inputAudio.push({
-                  name: "record",
+                  name: "recordedTrack",
                   data: audioBuffer,
                   source: null,
                   gainNode: null,
