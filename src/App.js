@@ -118,6 +118,11 @@ class App extends Component {
     this.setSpeed = this.setSpeed.bind(this);
     this.setPitch = this.setPitch.bind(this);
     this.switchLanguage = this.switchLanguage.bind(this);
+
+// Recording
+    this.mediaRecorder = null;
+    this.setMediaRecorder = this.setMediaRecorder.bind(this);
+    this.recordedChunks = [];
   }   
 
   componentWillUnmount () { // before closing app
@@ -235,7 +240,7 @@ class App extends Component {
 {/* Microphone on/off (toggle state.micOn) */}
     <Tooltip title={m.record}>
     <IconButton 
-     onClick={()=> this.setState({micOn: !this.state.micOn})} >
+     onClick={this.setMediaRecorder} >
     <MicIcon color={this.state.micOn ? 'secondary' : 'primary'} />
     </IconButton>
     </Tooltip>
@@ -652,6 +657,8 @@ class App extends Component {
     this.inputAudio.forEach ( (element) =>
         element.source.start(begin, timeA)
     );
+    // Mic recording
+    if (this.mediaRecorder !== null) this.mediaRecorder.start();
 
     if (offline) {
       console.log('startRendering');
@@ -697,6 +704,7 @@ class App extends Component {
           }
         }
       );
+      if (this.mediaRecorder !== null) this.mediaRecorder.stop();
 
       this.setState({isPlaying: false, playingAt: this.state.timeA});
 
@@ -772,6 +780,76 @@ class App extends Component {
        this.setState({isPlaying: false});
      }.bind(this);
   }
+
+// Mic Recorder
+  setMediaRecorder(e){
+
+   if (this.state.micOn) {
+      this.mediaRecorder = null;
+      this.setState({micOn: false});
+      return;
+   }
+
+   // see https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints
+    const constraints = { 
+      audio: {
+        autoGainControl: false, // default true
+        // channelCount: 2, // device dependent
+        echoCancellation: false, // default true
+        // latency
+        noiseSuppression: false, // default true
+        sampleRate: 44100,
+        sampleSize: 2, // 16 bits?
+        // volume
+      },
+    };
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+
+       console.log('getUserMedia supported.');
+
+       navigator.mediaDevices.getUserMedia(constraints)
+       .then (stream => { 
+
+         this.mediaRecorder = new MediaRecorder(stream);
+
+         this.mediaRecorder.ondataavailable = e => { 
+           this.recordedChunks.push(e.data);
+         } 
+
+         this.mediaRecorder.onstop = e => {
+           stream.getTracks().forEach(t => t.stop());
+           const blob = new Blob(this.recordedChunks);
+           this.recordedChunks = [];
+           this.setState({micOn: false});
+          
+           const fileReader = new FileReader();
+
+           fileReader.onloadend = () => {
+
+             this.audioCtx.decodeAudioData(fileReader.result, 
+              audioBuffer => {
+                this.inputAudio.push({
+                  name: "record",
+                  data: audioBuffer,
+                  source: null,
+                  gainNode: null,
+                  gain: 100,
+                });
+              }, 
+              error => { console.log("decode error: " + error.err) }
+             ); // decodeAudioData
+
+           } // onloadend
+
+           fileReader.readAsArrayBuffer(blob);
+         }// onstop 
+
+       }); // getUserMedia
+       this.setState({micOn: true});
+     } // if
+
+  } // setMediaRecorder
 
 }; // end class
 
