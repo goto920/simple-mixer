@@ -92,6 +92,7 @@ class App extends Component {
     this.masterGainNode = null;
  
     this.state = {
+      numTracks: 0,
       language: defaultLang,
       isPlaying: false,
       timeA: 0,
@@ -103,7 +104,7 @@ class App extends Component {
       masterGain: 75,
       playSpeed: 1.0,
       playPitch: 0.0,
-      bypass: false,
+      bypass: true,
       useAudioWorklet: isAudioWorkletAvailable,
       micOn: false,
     };
@@ -325,6 +326,7 @@ class App extends Component {
      <div className='text-divider'>{m.trackGainTitle}</div>
      <TrackGainSliderList
         inputAudio={this.inputAudio} 
+        length = {this.state.numTracks}
         handler={this.handleGainSlider}
      />
      <hr />
@@ -385,15 +387,16 @@ class App extends Component {
              if (a.name > b.name) return 1;
              return 0;
            });
-    
+ 
+           this.setState({numTracks: this.inputAudio.length});  
+
+           if (i === 0)
            this.setState({
              playButtonNextAction: 'Play',
                timeA: 0,
                playingAt: 0,
                timeB: this.inputAudio[0].data.duration, 
            });
-
-     // this.inputAudio.sort((a,b) => a.name - b.name); // mmm.. does not work
 
          }.bind(this),
 
@@ -449,6 +452,9 @@ class App extends Component {
           console.log('Play');
           if (this.inputAudio.length === 0) break;
            this.playAB (0, this.state.timeA, this.state.timeB);
+        // Mic recording
+         if (this.state.micOn && this.mediaRecorder !== null) 
+           this.mediaRecorder.start();
 
           this.setState ({playButtonNextAction: 'Pause'})
         break;
@@ -463,6 +469,8 @@ class App extends Component {
     if (event.target.name === 'stop') {
       if (this.shifter) this.shifter.stop();
       if (this.mixedSource) this.mixedSource.stop();
+      if (this.state.micOn && this.mediaRecorder !== null)
+        this.mediaRecorder.stop();
 
       this.setState ({loop: false, playButtonNextAction: 'Play', 
           playingAt: this.state.timeA, isPlaying: false})
@@ -654,13 +662,14 @@ class App extends Component {
 
 
     const begin = context.currentTime + delay;
-    this.inputAudio.forEach ( (element) =>
-        element.source.start(begin, timeA)
+    let latency = 0.2;
+    this.inputAudio.forEach ( (element) => {
+      if (element.name === 'record')
+        element.source.start(begin, timeA + latency);
+      else 
+        element.source.start(begin, timeA);
+      }
     );
-    // Mic recording
-    if (this.state.micOn)
-      if (this.mediaRecorder !== null) this.mediaRecorder.start();
-
 
     if (offline) {
       console.log('startRendering');
@@ -839,12 +848,7 @@ class App extends Component {
                   gain: 100,
                 });
               // console.log("decode success: recorded chunks"); 
-              this.setState({
-                   playButtonNextAction: 'Play',
-                  timeA: 0,
-                  playingAt: 0,
-                  timeB: this.inputAudio[0].data.duration,
-              });
+              this.setState({numTracks: this.inputAudio.length});
 
               }, 
               error => { console.log("decode error: " + error.err) }
