@@ -366,8 +366,8 @@ class App extends Component {
       const reader = new FileReader();
 
       reader.onload = function (e){
-       this.audioCtx.decodeAudioData(reader.result,
-         function (audioBuffer) {
+        this.audioCtx.decodeAudioData(reader.result,
+          function (audioBuffer) {
            if (audioBuffer.numberOfChannels !== 2) {
              alert ('Sorry, only stereo files are supported');
              return;
@@ -385,7 +385,7 @@ class App extends Component {
              if (a.name > b.name) return 1;
              return 0;
            });
-     
+    
            this.setState({
              playButtonNextAction: 'Play',
                timeA: 0,
@@ -658,7 +658,9 @@ class App extends Component {
         element.source.start(begin, timeA)
     );
     // Mic recording
-    if (this.mediaRecorder !== null) this.mediaRecorder.start();
+    if (this.state.micOn)
+      if (this.mediaRecorder !== null) this.mediaRecorder.start();
+
 
     if (offline) {
       console.log('startRendering');
@@ -825,7 +827,7 @@ class App extends Component {
           
            const fileReader = new FileReader();
 
-           fileReader.onloadend = () => {
+           fileReader.onload = () => {
 
              this.audioCtx.decodeAudioData(fileReader.result, 
               audioBuffer => {
@@ -836,11 +838,19 @@ class App extends Component {
                   gainNode: null,
                   gain: 100,
                 });
+              // console.log("decode success: recorded chunks"); 
+              this.setState({
+                   playButtonNextAction: 'Play',
+                  timeA: 0,
+                  playingAt: 0,
+                  timeB: this.inputAudio[0].data.duration,
+              });
+
               }, 
               error => { console.log("decode error: " + error.err) }
              ); // decodeAudioData
 
-           } // onloadend
+           } // onload
 
            fileReader.readAsArrayBuffer(blob);
          }// onstop 
