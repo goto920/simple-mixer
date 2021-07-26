@@ -452,9 +452,11 @@ class App extends Component {
           console.log('Play');
           if (this.inputAudio.length === 0) break;
            this.playAB (0, this.state.timeA, this.state.timeB);
+/*
         // Mic recording
          if (this.state.micOn && this.mediaRecorder !== null) 
            this.mediaRecorder.start();
+*/
 
           this.setState ({playButtonNextAction: 'Pause'})
         break;
@@ -670,6 +672,9 @@ class App extends Component {
         element.source.start(begin, timeA);
       }
     );
+    // Mic recording
+    if (this.state.micOn && this.mediaRecorder !== null) 
+       this.mediaRecorder.start();
 
     if (offline) {
       console.log('startRendering');
