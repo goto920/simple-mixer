@@ -472,7 +472,9 @@ class App extends Component {
     if (event.target.name === 'stop') {
       if (this.shifter) this.shifter.stop();
       if (this.mixedSource) this.mixedSource.stop();
-      if (this.state.micOn && this.mediaRecorder !== null)
+      if (this.state.micOn 
+        && this.mediaRecorder !== null
+        && this.mediaRecorder.state !== 'inactive')
         this.mediaRecorder.stop();
 
       this.setState ({loop: false, playButtonNextAction: 'Play', 
@@ -666,12 +668,11 @@ class App extends Component {
 
     const begin = context.currentTime + delay;
     this.inputAudio.forEach ( (element) => {
-      if (element.name === 'recordTrack')
-        element.source.start(begin, timeA + this.recLatency);
-      else 
+      if (element.name === 'recordTrack') {
         element.source.start(begin, timeA);
-      }
-    );
+      } else element.source.start(begin, timeA);
+    });
+
     // Mic recording
     if (this.state.micOn && this.mediaRecorder !== null) 
        this.mediaRecorder.start();
@@ -720,7 +721,9 @@ class App extends Component {
           }
         }
       );
-      if (this.mediaRecorder !== null) this.mediaRecorder.stop();
+
+      if (this.mediaRecorder !== null 
+        && this.mediaRecorder.state !== 'inactive') this.mediaRecorder.stop();
 
       this.setState({isPlaying: false, playingAt: this.state.timeA});
 
@@ -828,6 +831,7 @@ class App extends Component {
        .then (stream => { 
 
          this.mediaRecorder = new MediaRecorder(stream);
+         this.setState({micOn: true});
 
          this.mediaRecorder.ondataavailable = e => { 
            this.recordedChunks.push(e.data);
@@ -860,12 +864,10 @@ class App extends Component {
              ); // decodeAudioData
 
            } // onload
-
            fileReader.readAsArrayBuffer(blob);
          }// onstop 
 
-       }); // getUserMedia
-       this.setState({micOn: true});
+       });
      } // if
 
   } // setMediaRecorder
