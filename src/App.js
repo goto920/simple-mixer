@@ -90,7 +90,7 @@ class App extends Component {
     this.inputAudio = []; // filled in loadFiles
     this.mixedSource = null;
     this.masterGainNode = null;
-    this.recLatency = 0.1;
+    this.recLatency = 0.1; // 100msec
  
     this.state = {
       numTracks: 0,
@@ -809,7 +809,10 @@ class App extends Component {
       return;
    }
 
-   // see https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints
+   /* see 
+     https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints
+     https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints/latency 
+   */
     const constraints = { 
       audio: {
         autoGainControl: false, // default true
