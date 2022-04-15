@@ -168,8 +168,8 @@ export default class MyPitchShifter {
     } 
 
     if (this.record) {
-      this.recordedSamples[0].push([...left]);
-      this.recordedSamples[1].push([...right]);
+      this.recordedSamples[0].push(...left);
+      this.recordedSamples[1].push(...right);
     }
 
     return framesExtracted;
@@ -187,7 +187,7 @@ export default class MyPitchShifter {
       if (this.record) 
         // for (let i = 0; i < outputBuffer.length; i++) 
         //  this.recordedSamples[channel].push(input[i]);
-      this.recordedSamples[channel].push([...input]);
+      this.recordedSamples[channel].push(...input);
     }
 
   } // End pathThrough()
